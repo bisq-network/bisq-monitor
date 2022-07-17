@@ -16,6 +16,27 @@ The *Settled* release features these reporters:
 - A reporter that simply writes the findings to `System.err`
 - A reporter that reports the findings to a Graphite/Carbon instance using the [plaintext protocol](https://graphite.readthedocs.io/en/latest/feeding-carbon.html#the-plaintext-protocol)
 
+## Building source code
+
+This repo has a dependency on git submodule [bisq](https://github.com/bisq-network/bisq).  There are two ways to clone it before it can be compiled:
+
+```
+# 1) Use the --recursive option in the clone command:
+$ git clone --recursive  https://github.com/bisq-network/bisq-pricenode.git
+
+# 2) Do a normal clone, and pull down the bisq repo dependency with two git submodule commands:
+$ git clone https://github.com/bisq-network/bisq-monitor.git
+$ cd bisq-monitor
+$ git submodule init
+$ git submodule update
+```
+
+To build:
+```
+$ ./gradlew clean build
+```
+
+
 ## Configuration
 
 The *Bisq Network Monitor Node* is to be configured via a Java properties file. There is a default configuration file shipped with the monitor which reports to the one monitoring service currently up and running.
