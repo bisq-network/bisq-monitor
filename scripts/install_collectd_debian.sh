@@ -4,8 +4,10 @@ set -e
 echo "[*] Bisq Server Monitoring installation script"
 
 ##### change paths if necessary for your system
-BISQ_REPO_URL=https://raw.githubusercontent.com/bisq-network/bisq
-BISQ_REPO_TAG=master
+# BISQ_REPO_URL=https://raw.githubusercontent.com/bisq-network/bisq
+BISQ_REPO_URL=https://raw.githubusercontent.com/bisq-network/bisq-monitor
+# BISQ_REPO_TAG=master
+BISQ_REPO_TAG=main
 ROOT_USER=root
 ROOT_GROUP=root
 ROOT_HOME=~root
