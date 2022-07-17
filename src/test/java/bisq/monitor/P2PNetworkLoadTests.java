@@ -19,21 +19,20 @@ package bisq.monitor;
 
 import bisq.monitor.metric.P2PNetworkLoad;
 import bisq.monitor.reporter.ConsoleReporter;
-
 import org.berndpruenster.netlayer.tor.NativeTor;
 import org.berndpruenster.netlayer.tor.Tor;
 import org.berndpruenster.netlayer.tor.TorCtlException;
-
-import java.util.Map;
-import java.util.Properties;
-
-import org.junit.Assert;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
+import java.util.Properties;
+
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Test the round trip time metric against the hidden service of tor project.org.
@@ -52,7 +51,7 @@ class P2PNetworkLoadTests {
 
         @Override
         public void report(long value) {
-            Assert.fail();
+            fail();
         }
 
         Map<String, String> hasResults() {
@@ -61,12 +60,12 @@ class P2PNetworkLoadTests {
 
         @Override
         public void report(Map<String, String> values) {
-            Assert.fail();
+            fail();
         }
 
         @Override
         public void report(long value, String prefix) {
-            Assert.fail();
+            fail();
         }
 
         @Override
@@ -106,7 +105,7 @@ class P2PNetworkLoadTests {
 
         // observe results
         Map<String, String> results = reporter.hasResults();
-        Assert.assertFalse(results.isEmpty());
+        assertFalse(results.isEmpty());
     }
 
     @AfterAll

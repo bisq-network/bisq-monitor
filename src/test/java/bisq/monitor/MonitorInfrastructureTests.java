@@ -18,16 +18,17 @@
 package bisq.monitor;
 
 import bisq.monitor.reporter.ConsoleReporter;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
-import org.junit.Assert;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Disabled
 public class MonitorInfrastructureTests {
@@ -73,7 +74,7 @@ public class MonitorInfrastructureTests {
 
         Dummy DUT = new Dummy();
         DUT.configure(lut.get(configuration));
-        Assert.assertFalse(DUT.active());
+        assertFalse(DUT.active());
     }
 
     @Test
@@ -84,7 +85,7 @@ public class MonitorInfrastructureTests {
 
         Dummy DUT = new Dummy();
         DUT.configure(correct);
-        Assert.assertTrue(DUT.active());
+        assertTrue(DUT.active());
 
         // graceful shutdown
         Metric.haltAllMetrics();
@@ -105,26 +106,26 @@ public class MonitorInfrastructureTests {
 
         // disable
         DUT.configure(new Properties());
-        Assert.assertFalse(DUT.active());
-        Assert.assertTrue(DUT2.active());
+        assertFalse(DUT.active());
+        assertTrue(DUT2.active());
 
         // enable
         Properties properties = new Properties();
         properties.put("Dummy.enabled", "true");
         properties.put("Dummy.run.interval", "1");
         DUT.configure(properties);
-        Assert.assertTrue(DUT.active());
-        Assert.assertTrue(DUT2.active());
+        assertTrue(DUT.active());
+        assertTrue(DUT2.active());
 
         // disable again
         DUT.configure(new Properties());
-        Assert.assertFalse(DUT.active());
-        Assert.assertTrue(DUT2.active());
+        assertFalse(DUT.active());
+        assertTrue(DUT2.active());
 
         // enable again
         DUT.configure(properties);
-        Assert.assertTrue(DUT.active());
-        Assert.assertTrue(DUT2.active());
+        assertTrue(DUT.active());
+        assertTrue(DUT2.active());
 
         // graceful shutdown
         Metric.haltAllMetrics();

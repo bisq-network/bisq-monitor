@@ -19,22 +19,20 @@ package bisq.monitor;
 
 import bisq.monitor.metric.P2PRoundTripTime;
 import bisq.monitor.reporter.ConsoleReporter;
-
 import org.berndpruenster.netlayer.tor.NativeTor;
 import org.berndpruenster.netlayer.tor.Tor;
 import org.berndpruenster.netlayer.tor.TorCtlException;
-
-import java.util.Map;
-import java.util.Properties;
-
-import org.junit.Assert;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.Map;
+import java.util.Properties;
+
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Test the round trip time metric against the hidden service of tor project.org.
@@ -53,7 +51,7 @@ class P2PRoundTripTimeTests {
 
         @Override
         public void report(long value) {
-            Assert.fail();
+            fail();
         }
 
         Map<String, String> hasResults() {
@@ -62,12 +60,12 @@ class P2PRoundTripTimeTests {
 
         @Override
         public void report(Map<String, String> values) {
-            Assert.fail();
+            fail();
         }
 
         @Override
         public void report(long value, String prefix) {
-            Assert.fail();
+            fail();
         }
 
         @Override
@@ -110,8 +108,8 @@ class P2PRoundTripTimeTests {
 
         // observe results
         Map<String, String> results = reporter.hasResults();
-        Assert.assertFalse(results.isEmpty());
-        Assert.assertEquals(results.get("sampleSize"), sampleSize.equals("default") ? "1" : sampleSize);
+        assertFalse(results.isEmpty());
+        assertEquals(results.get("sampleSize"), sampleSize.equals("default") ? "1" : sampleSize);
 
         Integer p25 = Integer.valueOf(results.get("p25"));
         Integer p50 = Integer.valueOf(results.get("p50"));
@@ -120,11 +118,11 @@ class P2PRoundTripTimeTests {
         Integer max = Integer.valueOf(results.get("max"));
         Integer average = Integer.valueOf(results.get("average"));
 
-        Assert.assertTrue(0 < min);
-        Assert.assertTrue(min <= p25 && p25 <= p50);
-        Assert.assertTrue(p50 <= p75);
-        Assert.assertTrue(p75 <= max);
-        Assert.assertTrue(min <= average && average <= max);
+        assertTrue(0 < min);
+        assertTrue(min <= p25 && p25 <= p50);
+        assertTrue(p50 <= p75);
+        assertTrue(p75 <= max);
+        assertTrue(min <= average && average <= max);
     }
 
     @AfterAll
