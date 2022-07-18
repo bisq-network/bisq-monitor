@@ -18,23 +18,20 @@
 package bisq.monitor;
 
 import bisq.monitor.metric.TorHiddenServiceStartupTime;
-
 import org.berndpruenster.netlayer.tor.NativeTor;
 import org.berndpruenster.netlayer.tor.Tor;
 import org.berndpruenster.netlayer.tor.TorCtlException;
-
-import java.io.File;
-
-import java.util.Map;
-import java.util.Properties;
-
-import org.junit.Assert;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
+import java.util.Map;
+import java.util.Properties;
+
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Disabled // Ignore for normal test runs as the tests take lots of time
 public class TorHiddenServiceStartupTimeTests {
@@ -102,7 +99,7 @@ public class TorHiddenServiceStartupTimeTests {
         Metric.haltAllMetrics();
 
         // observe results
-        Assert.assertTrue(reporter.results() > 0);
+        assertTrue(reporter.results() > 0);
     }
 
     @AfterAll

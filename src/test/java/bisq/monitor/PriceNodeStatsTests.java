@@ -18,23 +18,20 @@
 package bisq.monitor;
 
 import bisq.monitor.metric.PriceNodeStats;
-
 import org.berndpruenster.netlayer.tor.NativeTor;
 import org.berndpruenster.netlayer.tor.Tor;
 import org.berndpruenster.netlayer.tor.TorCtlException;
-
-import java.io.File;
-
-import java.util.Map;
-import java.util.Properties;
-
-import org.junit.Assert;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
+import java.util.Map;
+import java.util.Properties;
+
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Florian Reimair
@@ -53,7 +50,7 @@ public class PriceNodeStatsTests {
 
         @Override
         public void report(long value) {
-            Assert.fail();
+            fail();
         }
 
         public Map<String, String> results() {
@@ -100,8 +97,8 @@ public class PriceNodeStatsTests {
 
         DUT.execute();
 
-        Assert.assertNotNull(reporter.results());
-        Assert.assertTrue(reporter.results.size() > 0);
+        assertNotNull(reporter.results());
+        assertTrue(reporter.results.size() > 0);
     }
 
     @AfterAll

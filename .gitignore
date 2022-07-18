@@ -1,0 +1,8 @@
+.gradle
+.idea
+build
+bisq-monitor
+bisq-monitor.bat
+lib
+monitor
+

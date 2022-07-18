@@ -18,13 +18,13 @@
 package bisq.monitor;
 
 import bisq.monitor.metric.TorStartupTime;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 import java.util.Properties;
 
-import org.junit.Assert;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Disabled // Ignore for normal test runs as the tests take lots of time
 public class TorStartupTimeTests {
@@ -87,6 +87,6 @@ public class TorStartupTimeTests {
 
         // TODO Test fails due timing issue
         // observe results
-        Assert.assertTrue(reporter.results() > 0);
+        assertTrue(reporter.results() > 0);
     }
 }
