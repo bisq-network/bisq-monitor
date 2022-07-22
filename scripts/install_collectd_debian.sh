@@ -4,8 +4,8 @@ set -e
 echo "[*] Bisq Server Monitoring installation script"
 
 ##### change paths if necessary for your system
-BISQ_REPO_URL=https://raw.githubusercontent.com/bisq-network/bisq-monitor
-BISQ_REPO_TAG=main
+BISQ_MONITOR_REPO_URL=https://raw.githubusercontent.com/ghubstan/bisq-monitor
+BISQ_MONITOR_REPO_TAG=monitor-scratch
 ROOT_USER=root
 ROOT_GROUP=root
 ROOT_HOME=~root
@@ -41,11 +41,11 @@ echo "[*] Seeding entropy from /dev/urandom"
 sudo -H -i -u "${ROOT_USER}" /bin/sh -c "head -1500 /dev/urandom > ${ROOT_HOME}/.rnd"
 echo "[*] Installing Nginx config"
 sudo -H -i -u "${ROOT_USER}" openssl req -x509 -nodes -newkey rsa:2048 -days 3000 -keyout /etc/nginx/cert.key -out /etc/nginx/cert.crt -subj="/O=Bisq/OU=Bisq Infrastructure/CN=$onionaddress"
-curl -s "${BISQ_REPO_URL}/${BISQ_REPO_TAG}/monitor/nginx.conf" > /tmp/nginx.conf
+curl -s "${BISQ_MONITOR_REPO_URL}/${BISQ_MONITOR_REPO_TAG}/scripts/nginx.conf" > /tmp/nginx.conf
 sudo -H -i -u "${ROOT_USER}" install -c -o "${ROOT_USER}" -g "${ROOT_GROUP}" -m 644 /tmp/nginx.conf /etc/nginx/nginx.conf
 
 echo "[*] Installing collectd config"
-curl -s "${BISQ_REPO_URL}/${BISQ_REPO_TAG}/monitor/collectd.conf" > /tmp/collectd.conf
+curl -s "${BISQ_MONITOR_REPO_URL}/${BISQ_MONITOR_REPO_TAG}/scripts/collectd.conf" > /tmp/collectd.conf
 sudo -H -i -u "${ROOT_USER}" install -c -o "${ROOT_USER}" -g "${ROOT_GROUP}" -m 644 /tmp/collectd.conf /etc/collectd/collectd.conf
 sudo -H -i -u "${ROOT_USER}" sed -i -e "s/__ONION_ADDRESS__/$onionaddress/" /etc/collectd/collectd.conf
 
