@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+# Usage: `$ sudo ./install_collectd_debian.sh`
+
 echo "[*] Bisq Server Monitoring installation script"
 
 ##### change paths if necessary for your system
