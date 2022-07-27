@@ -1,6 +1,7 @@
 plugins {
     id 'application'
     alias(libs.plugins.openjfx)
+    id 'bisq.post-build'
 }
 
 repositories {
@@ -9,10 +10,7 @@ repositories {
 }
 
 group 'bisq'
-// TODO Read from bisq/desktop/src/main/resources/version.txt
-//    Wait for merge: https://github.com/bisq-network/bisq/pull/6298
-version = '1.9.4-SNAPSHOT'
-// version = file("bisq/desktop/src/main/resources/version.txt").text.trim()
+version = file("bisq/desktop/src/main/resources/version.txt").text.trim()
 
 application {
     project.mainClassName = 'bisq.monitor.Monitor'
@@ -62,8 +60,6 @@ dependencies {
     testCompileOnly libs.lombok
     testImplementation libs.junit.jupiter
 }
-
-apply from: 'bisq-gradle/task/postBuild.gradle'
 
 clean.doFirst {
     // Remove the project root level 'bisq-*' scripts and 'lib' dir generated at the end of the assemble task.
