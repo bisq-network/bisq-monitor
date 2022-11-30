@@ -15,21 +15,27 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.monitor.reporter;
+package bisq.monitor.server.handlers;
 
+import bisq.common.util.Tuple2;
+import bisq.core.monitor.ReportingItems;
+import bisq.monitor.reporter.MetricItem;
+import bisq.monitor.reporter.Reporter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Set;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
-public class ConsoleReporter extends Reporter {
-    @Override
-    public void report(MetricItem metricItem) {
-        System.out.println(metricItem.toString());
+public class NetworkDataHandler extends ReportingHandler {
+    private final Map<Tuple2<Integer, Integer>, Map<String, Map<String, Map<String, MetricItem>>>> map = new ConcurrentHashMap<>();
+
+    public NetworkDataHandler(Reporter reporter, Map<String, String> seedNodeOperatorByAddress) {
+        super(reporter, seedNodeOperatorByAddress);
     }
 
     @Override
-    public void report(Set<MetricItem> metricItems) {
-        metricItems.forEach(this::report);
+    public void report(ReportingItems reportingItems) {
+        super.report(reportingItems, "data");
     }
 }

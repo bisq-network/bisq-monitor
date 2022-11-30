@@ -17,90 +17,71 @@
 
 package bisq.monitor.reporter;
 
-import bisq.monitor.OnionParser;
-import bisq.monitor.Reporter;
+import bisq.common.Timer;
+import bisq.common.UserThread;
+import lombok.extern.slf4j.Slf4j;
+import org.eclipse.jetty.util.ConcurrentHashSet;
 
-import bisq.network.p2p.NodeAddress;
-
-import bisq.common.app.Version;
-import bisq.common.config.BaseCurrencyNetwork;
-
-import org.berndpruenster.netlayer.tor.TorSocket;
-
-import com.google.common.base.Charsets;
-
-import java.net.Socket;
-
-import java.io.IOException;
-
-import java.util.HashMap;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Properties;
+import java.util.Set;
 
 /**
  * Reports our findings to a graphite service.
  *
  * @author Florian Reimair
  */
+@Slf4j
 public class GraphiteReporter extends Reporter {
+    private final LineWriter lineWriter;
+    private final BatchWriter batchWriter;
+    private final Set<MetricItem> pending = new ConcurrentHashSet<>();
+    private final int delayForBatchingSec;
+    private final int minItemsForBatching;
+    private Timer timer;
 
-    @Override
-    public void report(long value, String prefix) {
-        HashMap<String, String> result = new HashMap<>();
-        result.put("", String.valueOf(value));
-        report(result, prefix);
-
+    public GraphiteReporter(Properties properties) {
+        super();
+        lineWriter = new LineWriter(properties);
+        batchWriter = new BatchWriter(properties);
+        delayForBatchingSec = Integer.parseInt(properties.getProperty("GraphiteReporter.delayForBatchingSec", "1"));
+        minItemsForBatching = Integer.parseInt(properties.getProperty("GraphiteReporter.minItemsForBatching", "5"));
     }
 
-    @Override
-    public void report(long value) {
-        report(value, "");
-    }
+    public void report(MetricItem metricItem) {
+        pending.add(metricItem);
 
-    @Override
-    public void report(Map<String, String> values, String prefix) {
-        String timestamp = String.valueOf(System.currentTimeMillis());
-        values.forEach((key, value) -> {
-
-            report(key, value, timestamp, prefix);
-            try {
-                // give Tor some slack
-                // TODO maybe use the pickle protocol?
-                // https://graphite.readthedocs.io/en/latest/feeding-carbon.html
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-        });
-    }
-
-    @Override
-    public void report(String key, String value, String timeInMilliseconds, String prefix) {
-        // https://graphite.readthedocs.io/en/latest/feeding-carbon.html
-        String report = "bisq" + (Version.getBaseCurrencyNetwork() != 0 ? "-" + BaseCurrencyNetwork.values()[Version.getBaseCurrencyNetwork()].getNetwork() : "")
-                + (prefix.isEmpty() ? "" : "." + prefix)
-                + (key.isEmpty() ? "" : "." + key)
-                + " " + value + " " + Long.parseLong(timeInMilliseconds) / 1000 + "\n";
-
-        try {
-            NodeAddress nodeAddress = OnionParser.getNodeAddress(configuration.getProperty("serviceUrl"));
-            Socket socket;
-            if (nodeAddress.getFullAddress().contains(".onion"))
-                socket = new TorSocket(nodeAddress.getHostName(), nodeAddress.getPort());
-            else
-                socket = new Socket(nodeAddress.getHostName(), nodeAddress.getPort());
-
-            socket.getOutputStream().write(report.getBytes(Charsets.UTF_8));
-            socket.close();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        if (timer == null) {
+            // We wait a bit if more items arrive, so we can batch them
+            timer = UserThread.runAfter(this::sendPending, delayForBatchingSec);
         }
-
     }
 
     @Override
-    public void report(Map<String, String> values) {
-        report(values, "");
+    public void report(Set<MetricItem> metricItems) {
+        pending.addAll(metricItems);
+
+        sendPending();
+    }
+
+    private void sendPending() {
+        Set<MetricItem> clone = new HashSet<>(pending);
+        pending.clear();
+        if (clone.size() >= minItemsForBatching) {
+            batchWriter.report(clone);
+        } else {
+            clone.forEach(lineWriter::report);
+        }
+        if (timer != null) {
+            timer.stop();
+            timer = null;
+        }
+    }
+
+    @Override
+    public void shutDown() {
+        if (timer != null) {
+            timer.stop();
+        }
     }
 }

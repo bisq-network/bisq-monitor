@@ -15,21 +15,23 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.monitor.reporter;
+package bisq.monitor.server.handlers;
 
+import bisq.core.monitor.ReportingItems;
+import bisq.monitor.reporter.Reporter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Set;
+import java.util.Map;
 
 @Slf4j
-public class ConsoleReporter extends Reporter {
-    @Override
-    public void report(MetricItem metricItem) {
-        System.out.println(metricItem.toString());
+public class NetworkLoadHandler extends ReportingHandler {
+
+    public NetworkLoadHandler(Reporter reporter, Map<String, String> seedNodeOperatorByAddress) {
+        super(reporter, seedNodeOperatorByAddress);
     }
 
     @Override
-    public void report(Set<MetricItem> metricItems) {
-        metricItems.forEach(this::report);
+    public void report(ReportingItems reportingItems) {
+        super.report(reportingItems, "network");
     }
 }

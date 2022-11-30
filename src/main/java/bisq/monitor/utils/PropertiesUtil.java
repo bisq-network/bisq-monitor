@@ -15,21 +15,24 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.monitor.reporter;
+package bisq.monitor.utils;
 
-import lombok.extern.slf4j.Slf4j;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Properties;
 
-import java.util.Set;
+public class PropertiesUtil {
 
-@Slf4j
-public class ConsoleReporter extends Reporter {
-    @Override
-    public void report(MetricItem metricItem) {
-        System.out.println(metricItem.toString());
-    }
+    public static Properties getProperties(String[] args) throws IOException {
+        Properties result = new Properties();
 
-    @Override
-    public void report(Set<MetricItem> metricItems) {
-        metricItems.forEach(this::report);
+        // if we have a config file load the config file, else, load the default config
+        // from the resources
+        if (args.length > 0) {
+            result.load(new FileInputStream(args[0]));
+        } else {
+            result.load(PropertiesUtil.class.getClassLoader().getResourceAsStream("example_monitor.properties"));
+        }
+        return result;
     }
 }

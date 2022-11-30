@@ -18,18 +18,17 @@
 package bisq.monitor;
 
 import bisq.common.app.Version;
+import bisq.common.config.BaseCurrencyNetwork;
 import bisq.common.util.Utilities;
+import bisq.monitor.reporter.Reporter;
+import bisq.monitor.utils.Configurable;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Properties;
-import java.util.Random;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
-import lombok.extern.slf4j.Slf4j;
-
-import static bisq.common.config.Config.BASE_CURRENCY_NETWORK;
 
 /**
  * Starts a Metric (in its own {@link Thread}), manages its properties and shuts
@@ -47,27 +46,7 @@ public abstract class Metric extends Configurable implements Runnable {
     protected final Reporter reporter;
     private ScheduledFuture<?> scheduler;
 
-    /**
-     * disable execution
-     */
-    private void disable() {
-        if (scheduler != null)
-            scheduler.cancel(false);
-    }
-
-    /**
-     * enable execution
-     */
-    private void enable() {
-        scheduler = executor.scheduleWithFixedDelay(this, new Random().nextInt(60),
-                Long.parseLong(configuration.getProperty(INTERVAL)), TimeUnit.SECONDS);
-    }
-
-    /**
-     * Constructor.
-     */
     protected Metric(Reporter reporter) {
-
         this.reporter = reporter;
 
         setName(this.getClass().getSimpleName());
@@ -76,6 +55,18 @@ public abstract class Metric extends Configurable implements Runnable {
             executor = new ScheduledThreadPoolExecutor(6);
         }
     }
+
+    private void disable() {
+        if (scheduler != null)
+            scheduler.cancel(false);
+    }
+
+    private void enable() {
+        int initialDelay = 0;//new Random().nextInt(60);
+        scheduler = executor.scheduleWithFixedDelay(this, initialDelay,
+                Long.parseLong(configuration.getProperty(INTERVAL)), TimeUnit.SECONDS);
+    }
+
 
     boolean enabled() {
         if (scheduler != null)
@@ -91,7 +82,8 @@ public abstract class Metric extends Configurable implements Runnable {
             super.configure(properties);
             reporter.configure(properties);
 
-            Version.setBaseCryptoNetworkId(Integer.parseInt(properties.getProperty("System." + BASE_CURRENCY_NETWORK, "1"))); // defaults to BTC_TESTNET
+            BaseCurrencyNetwork baseCurrencyNetwork = BaseCurrencyNetwork.valueOf(properties.getProperty("baseCurrencyNetwork", "BTC_REGTEST"));
+            Version.setBaseCryptoNetworkId(baseCurrencyNetwork.ordinal());
 
             // decide whether to enable or disable the task
             if (configuration.isEmpty() || !configuration.getProperty("enabled", "false").equals("true")

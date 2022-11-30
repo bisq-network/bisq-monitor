@@ -15,17 +15,18 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.monitor;
+package bisq.monitor.tor;
 
+import bisq.monitor.Metric;
 import bisq.monitor.clearnet.metric.MarketStats;
 import bisq.monitor.reporter.Reporter;
+import bisq.monitor.tor.metrics.*;
 import lombok.extern.slf4j.Slf4j;
 import org.berndpruenster.netlayer.tor.Tor;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Monitor executable for the Bisq network.
@@ -33,25 +34,32 @@ import java.util.concurrent.CompletableFuture;
  * @author Florian Reimair
  */
 @Slf4j
-public class Monitor {
+public class TorBasedMonitor {
 
-    public Monitor(Properties properties, Reporter reporter) {
+    public TorBasedMonitor(Properties properties, Reporter reporter) {
         List<Metric> metrics = new ArrayList<>();
+        metrics.add(new TorStartupTime(reporter));
+        metrics.add(new TorRoundTripTime(reporter));
+        metrics.add(new TorHiddenServiceStartupTime(reporter));
+        metrics.add(new P2PRoundTripTime(reporter));
+        metrics.add(new P2PNetworkLoad(reporter));
+        metrics.add(new P2PSeedNodeSnapshot(reporter));
+        metrics.add(new P2PMarketStats(reporter));
+        metrics.add(new PriceNodeStats(reporter));
         metrics.add(new MarketStats(reporter));
+        metrics.add(new PriceNodeStats(reporter));
 
         // configure triggers execution if enabled
         metrics.forEach(metric -> metric.configure(properties));
     }
 
-    public CompletableFuture<Void> shutDown() {
-        return CompletableFuture.runAsync(() -> {
-            Metric.haltAllMetrics();
+    public void shutDown() {
+        Metric.haltAllMetrics();
 
-            log.info("shutting down tor...");
-            Tor tor = Tor.getDefault();
-            if (tor != null) {
-                tor.shutdown();
-            }
-        });
+        log.info("shutting down tor...");
+        Tor tor = Tor.getDefault();
+        if (tor != null) {
+            tor.shutdown();
+        }
     }
 }

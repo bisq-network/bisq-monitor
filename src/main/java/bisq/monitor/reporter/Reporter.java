@@ -17,19 +17,33 @@
 
 package bisq.monitor.reporter;
 
-import lombok.extern.slf4j.Slf4j;
+import bisq.monitor.utils.Configurable;
 
+import java.util.Map;
 import java.util.Set;
 
-@Slf4j
-public class ConsoleReporter extends Reporter {
-    @Override
-    public void report(MetricItem metricItem) {
-        System.out.println(metricItem.toString());
+/**
+ * Reports findings to a specific service/file/place using the proper means to
+ * do so.
+ *
+ * @author Florian Reimair
+ */
+public abstract class Reporter extends Configurable {
+
+    protected Reporter() {
+        setName(this.getClass().getSimpleName());
     }
 
-    @Override
-    public void report(Set<MetricItem> metricItems) {
-        metricItems.forEach(this::report);
+    abstract public void report(MetricItem metricItem);
+
+    abstract public void report(Set<MetricItem> metricItems);
+
+    public void shutDown() {
+    }
+
+    public void report(Map<String, String> map, String prefix) {
+        map.entrySet().stream()
+                .map(entry -> new MetricItem(prefix, entry.getKey(), entry.getValue()))
+                .forEach(this::report);
     }
 }
