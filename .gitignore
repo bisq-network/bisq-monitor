@@ -31,5 +31,5 @@ deploy
 .java-version
 .localnet
 /.run
-/dev_monitor.properties
+monitor.properties
 
