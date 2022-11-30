@@ -13,7 +13,7 @@ group 'bisq'
 version = file("bisq/desktop/src/main/resources/version.txt").text.trim()
 
 application {
-    project.mainClassName = 'bisq.monitor.Monitor'
+    project.mainClassName = 'bisq.monitor.MonitorMain'
 }
 
 java {
@@ -49,7 +49,7 @@ dependencies {
     implementation libs.guice
     implementation libs.netlayer.tor
     implementation libs.netlayer.tor.native
-
+    implementation libs.spark.core
     implementation libs.logback.core
     implementation libs.logback.classic
     compileOnly libs.lombok
