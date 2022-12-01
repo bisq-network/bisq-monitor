@@ -40,9 +40,9 @@ public class LineWriter {
         port = Integer.parseInt(tokens[1]);
     }
 
-    public CompletableFuture<Boolean> report(MetricItem metricItem) {
+    public CompletableFuture<Boolean> report(Metric metric) {
         // trailing line break is needed
-        String payload = metricItem.getPath() + " " + metricItem.getValue() + " " + metricItem.getTimeStampInSec() + "\n";
+        String payload = metric.getPath() + " " + metric.getValue() + " " + metric.getTimeStampInSec() + "\n";
         return CompletableFuture.supplyAsync(() -> {
             try (Socket socket = new Socket(host, port)) {
                 socket.getOutputStream().write(payload.getBytes(Charsets.UTF_8));

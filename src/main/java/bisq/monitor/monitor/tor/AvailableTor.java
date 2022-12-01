@@ -15,34 +15,38 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.monitor.reporter;
+package bisq.monitor.monitor.tor;
 
-import bisq.monitor.monitor.utils.Configurable;
+import bisq.network.p2p.network.TorMode;
+import lombok.Setter;
+import org.berndpruenster.netlayer.tor.Tor;
 
-import java.util.Map;
-import java.util.Set;
+import java.io.File;
 
 /**
- * Reports findings to a specific service/file/place using the proper means to
- * do so.
+ * This class uses an already running Tor instance via <code>Tor.getDefault()</code>
  *
  * @author Florian Reimair
  */
-public abstract class Reporter extends Configurable {
+public class AvailableTor extends TorMode {
+    @Setter
+    private static File appDir;
+    private final String hiddenServiceDirectory;
 
-    protected Reporter() {
+    public AvailableTor(String hiddenServiceDirectory) {
+        super(new File(appDir + "/tor"));
+
+        this.hiddenServiceDirectory = hiddenServiceDirectory;
     }
 
-    abstract public void report(Metric metric);
-
-    abstract public void report(Set<Metric> metrics);
-
-    public void shutDown() {
+    @Override
+    public Tor getTor() {
+        return Tor.getDefault();
     }
 
-    public void report(Map<String, String> map, String prefix) {
-        map.entrySet().stream()
-                .map(entry -> new Metric(prefix, entry.getKey(), entry.getValue()))
-                .forEach(this::report);
+    @Override
+    public String getHiddenServiceDirectory() {
+        return hiddenServiceDirectory;
     }
+
 }

@@ -13,7 +13,7 @@ group 'bisq'
 version = file("bisq/desktop/src/main/resources/version.txt").text.trim()
 
 application {
-    project.mainClassName = 'bisq.monitor.MonitorMain'
+    project.mainClassName = 'bisq.monitor.AppChooserMain'
 }
 
 java {
@@ -33,9 +33,7 @@ javafx {
 }
 
 configurations.all {
-    exclude group: 'com.github.bisq-network:bitcoinj'
     exclude group: 'io.grpc'
-    exclude group: 'org.fxmisc.easybind'
 }
 
 dependencies {
@@ -49,12 +47,23 @@ dependencies {
     implementation libs.guice
     implementation libs.netlayer.tor
     implementation libs.netlayer.tor.native
-    implementation libs.spark.core
     implementation libs.logback.core
     implementation libs.logback.classic
     compileOnly libs.lombok
     annotationProcessor libs.lombok
     implementation libs.slf4j.api
+
+    implementation libs.spark.core
+    implementation "com.google.code.gson:gson:2.8.5"
+    implementation("com.github.bisq-network:bitcoinj:42bbae9") {
+        exclude(module: 'bcprov-jdk15on')
+        exclude(module: 'guava')
+        exclude(module: 'jsr305')
+        exclude(module: 'okhttp')
+        exclude(module: 'okio')
+        exclude(module: 'protobuf-java')
+        exclude(module: 'slf4j-api')
+    }
 
     testAnnotationProcessor libs.lombok
     testCompileOnly libs.lombok

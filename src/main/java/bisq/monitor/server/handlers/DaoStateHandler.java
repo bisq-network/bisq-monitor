@@ -19,7 +19,7 @@ package bisq.monitor.server.handlers;
 
 import bisq.common.util.Tuple2;
 import bisq.core.monitor.ReportingItems;
-import bisq.monitor.reporter.MetricItem;
+import bisq.monitor.reporter.Metric;
 import bisq.monitor.reporter.Reporter;
 import bisq.monitor.server.Util;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 public class DaoStateHandler extends ReportingHandler {
-    private final Map<Tuple2<Integer, Integer>, Map<String, Map<String, Map<String, MetricItem>>>> map = new ConcurrentHashMap<>();
+    private final Map<Tuple2<Integer, Integer>, Map<String, Map<String, Map<String, Metric>>>> map = new ConcurrentHashMap<>();
 
     public DaoStateHandler(Reporter reporter, Map<String, String> seedNodeOperatorByAddress) {
         super(reporter, seedNodeOperatorByAddress);
@@ -55,14 +55,14 @@ public class DaoStateHandler extends ReportingHandler {
             String blindVoteHash = Util.findStringValue(reportingItems, "dao.blindVoteHash").orElseThrow();
             fillHashValue(map, nodeId, height, blockTimeIsSec, "blindVoteHash", blindVoteHash);
 
-            Set<MetricItem> metricItems = getMetricItems(map);
-            metricItems.add(new MetricItem("dao.height." + nodeId, height, blockTimeIsSec));
-            metricItems.forEach(this::sendReport);
+            Set<Metric> metrics = getMetricItems(map);
+            metrics.add(new Metric("dao.height." + nodeId, height, blockTimeIsSec));
+            metrics.forEach(this::sendReport);
         } catch (Throwable ignore) {
         }
     }
 
-    private static void fillHashValue(Map<Tuple2<Integer, Integer>, Map<String, Map<String, Map<String, MetricItem>>>> map,
+    private static void fillHashValue(Map<Tuple2<Integer, Integer>, Map<String, Map<String, Map<String, Metric>>>> map,
                                       String nodeId,
                                       int height,
                                       int blockTimeIsSec,
@@ -70,20 +70,20 @@ public class DaoStateHandler extends ReportingHandler {
                                       String hashValue) {
         Tuple2<Integer, Integer> blockHeightTuple = new Tuple2<>(height, blockTimeIsSec);
         map.putIfAbsent(blockHeightTuple, new HashMap<>());
-        Map<String, Map<String, Map<String, MetricItem>>> mapByHashType = map.get(blockHeightTuple);
+        Map<String, Map<String, Map<String, Metric>>> mapByHashType = map.get(blockHeightTuple);
         mapByHashType.putIfAbsent(hashType, new HashMap<>());
-        Map<String, Map<String, MetricItem>> setByHashValue = mapByHashType.get(hashType);
+        Map<String, Map<String, Metric>> setByHashValue = mapByHashType.get(hashType);
         setByHashValue.putIfAbsent(hashValue, new HashMap<>());
-        Map<String, MetricItem> metricItemByNodeId = setByHashValue.get(hashValue);
+        Map<String, Metric> metricItemByNodeId = setByHashValue.get(hashValue);
         metricItemByNodeId.putIfAbsent(nodeId, null);
     }
 
-    private static Set<MetricItem> getMetricItems(Map<Tuple2<Integer, Integer>, Map<String, Map<String, Map<String, MetricItem>>>> map) {
-        Set<MetricItem> metricItems = new HashSet<>();
+    private static Set<Metric> getMetricItems(Map<Tuple2<Integer, Integer>, Map<String, Map<String, Map<String, Metric>>>> map) {
+        Set<Metric> metrics = new HashSet<>();
         map.forEach((blockHeightTuple, mapByHashType) -> {
             int blockTimeIsSec = blockHeightTuple.second;
             mapByHashType.forEach((hashType, byHashValue) -> {
-                Comparator<Map.Entry<String, Map<String, MetricItem>>> entryComparator = Comparator.comparing(e -> e.getValue().size());
+                Comparator<Map.Entry<String, Map<String, Metric>>> entryComparator = Comparator.comparing(e -> e.getValue().size());
                 List<String> rankedHashBuckets = byHashValue.entrySet().stream()
                         .sorted(entryComparator.reversed())
                         .map(Map.Entry::getKey)
@@ -103,18 +103,18 @@ public class DaoStateHandler extends ReportingHandler {
                     }
 
                     int finalIndex = index;
-                    Map<String, MetricItem> updated = metricItemByNodeId.entrySet().stream()
+                    Map<String, Metric> updated = metricItemByNodeId.entrySet().stream()
                             .collect(Collectors.toMap(Map.Entry::getKey,
-                                    entry -> new MetricItem("dao." + hashType + "." + entry.getKey(), finalIndex, blockTimeIsSec)));
+                                    entry -> new Metric("dao." + hashType + "." + entry.getKey(), finalIndex, blockTimeIsSec)));
                     metricItemByNodeId.putAll(updated);
-                    metricItems.addAll(updated.values());
+                    metrics.addAll(updated.values());
                 });
             });
         });
-        return metricItems;
+        return metrics;
     }
 
-    private void pruneMap(Map<Tuple2<Integer, Integer>, Map<String, Map<String, Map<String, MetricItem>>>> map, int height) {
+    private void pruneMap(Map<Tuple2<Integer, Integer>, Map<String, Map<String, Map<String, Metric>>>> map, int height) {
         int minHeight = height - 2;
         var pruned = map.entrySet().stream()
                 .filter(e -> e.getKey().first > minHeight)

@@ -35,7 +35,7 @@ import java.util.Set;
 public class GraphiteReporter extends Reporter {
     private final LineWriter lineWriter;
     private final BatchWriter batchWriter;
-    private final Set<MetricItem> pending = new ConcurrentHashSet<>();
+    private final Set<Metric> pending = new ConcurrentHashSet<>();
     private final int delayForBatchingSec;
     private final int minItemsForBatching;
     private Timer timer;
@@ -48,8 +48,8 @@ public class GraphiteReporter extends Reporter {
         minItemsForBatching = Integer.parseInt(properties.getProperty("GraphiteReporter.minItemsForBatching", "5"));
     }
 
-    public void report(MetricItem metricItem) {
-        pending.add(metricItem);
+    public void report(Metric metric) {
+        pending.add(metric);
 
         if (timer == null) {
             // We wait a bit if more items arrive, so we can batch them
@@ -58,14 +58,14 @@ public class GraphiteReporter extends Reporter {
     }
 
     @Override
-    public void report(Set<MetricItem> metricItems) {
-        pending.addAll(metricItems);
+    public void report(Set<Metric> metrics) {
+        pending.addAll(metrics);
 
         sendPending();
     }
 
     private void sendPending() {
-        Set<MetricItem> clone = new HashSet<>(pending);
+        Set<Metric> clone = new HashSet<>(pending);
         pending.clear();
         if (clone.size() >= minItemsForBatching) {
             batchWriter.report(clone);

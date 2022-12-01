@@ -15,22 +15,7 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.monitor.server.handlers;
-
-import bisq.core.monitor.ReportingItems;
-import bisq.monitor.reporter.Reporter;
-import lombok.extern.slf4j.Slf4j;
-
-import java.util.Map;
-
-@Slf4j
-public class NetworkLoadHandler extends ReportingHandler {
-    public NetworkLoadHandler(Reporter reporter, Map<String, String> seedNodeOperatorByAddress) {
-        super(reporter, seedNodeOperatorByAddress);
-    }
-
-    @Override
-    public void report(ReportingItems reportingItems) {
-        super.report(reportingItems, "network");
-    }
-}
+/**
+ * Monitors the tor network, Bisq seed node availability and connectivity and price nodes.
+ */
+package bisq.monitor.monitor;

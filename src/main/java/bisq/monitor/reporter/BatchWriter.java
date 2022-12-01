@@ -58,11 +58,11 @@ public class BatchWriter {
     }
 
     // https://graphite.readthedocs.io/en/latest/feeding-carbon.html
-    public CompletableFuture<Boolean> report(Collection<MetricItem> metricItems) {
+    public CompletableFuture<Boolean> report(Collection<Metric> metrics) {
         return CompletableFuture.supplyAsync(() -> {
             try (Socket socket = new Socket(host, port);
                  OutputStream outputStream = socket.getOutputStream()) {
-                String payload = serializeMetricItems(metricItems);
+                String payload = serializeMetricItems(metrics);
                 int length = payload.length();
                 byte[] header = ByteBuffer.allocate(4).putInt(length).array();
                 outputStream.write(header);
@@ -77,11 +77,11 @@ public class BatchWriter {
         });
     }
 
-    private static String serializeMetricItems(Collection<MetricItem> metrics) {
+    private static String serializeMetricItems(Collection<Metric> metrics) {
         StringBuilder pickled = new StringBuilder(metrics.size() * 75);
         pickled.append(MARK).append(LIST);
 
-        for (MetricItem tuple : metrics) {
+        for (Metric tuple : metrics) {
             // begin outer tuple
             pickled.append(MARK);
 

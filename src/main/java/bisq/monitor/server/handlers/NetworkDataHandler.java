@@ -17,19 +17,14 @@
 
 package bisq.monitor.server.handlers;
 
-import bisq.common.util.Tuple2;
 import bisq.core.monitor.ReportingItems;
-import bisq.monitor.reporter.MetricItem;
 import bisq.monitor.reporter.Reporter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 public class NetworkDataHandler extends ReportingHandler {
-    private final Map<Tuple2<Integer, Integer>, Map<String, Map<String, Map<String, MetricItem>>>> map = new ConcurrentHashMap<>();
-
     public NetworkDataHandler(Reporter reporter, Map<String, String> seedNodeOperatorByAddress) {
         super(reporter, seedNodeOperatorByAddress);
     }

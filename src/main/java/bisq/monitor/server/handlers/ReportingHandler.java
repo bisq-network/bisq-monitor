@@ -21,7 +21,7 @@ import bisq.core.monitor.DoubleValueItem;
 import bisq.core.monitor.IntegerValueItem;
 import bisq.core.monitor.ReportingItems;
 import bisq.core.monitor.StringValueItem;
-import bisq.monitor.reporter.MetricItem;
+import bisq.monitor.reporter.Metric;
 import bisq.monitor.reporter.Reporter;
 import bisq.monitor.server.Util;
 
@@ -32,7 +32,7 @@ import java.util.Set;
 public abstract class ReportingHandler {
     protected final Reporter reporter;
     protected final Map<String, String> seedNodeOperatorByAddress;
-    private final Set<MetricItem> sentReports = new HashSet<>();
+    private final Set<Metric> sentReports = new HashSet<>();
 
     public ReportingHandler(Reporter reporter, Map<String, String> seedNodeOperatorByAddress) {
         this.reporter = reporter;
@@ -53,12 +53,12 @@ public abstract class ReportingHandler {
                 .map(item -> {
                     String path = item.getPath() + "." + nodeId;
                     if (item instanceof IntegerValueItem) {
-                        return new MetricItem(path, ((IntegerValueItem) item).getValue());
+                        return new Metric(path, ((IntegerValueItem) item).getValue());
                     } else if (item instanceof DoubleValueItem) {
-                        return new MetricItem(path, ((DoubleValueItem) item).getValue());
+                        return new Metric(path, ((DoubleValueItem) item).getValue());
                     }
                     if (item instanceof StringValueItem) {
-                        return new MetricItem(path, ((StringValueItem) item).getValue());
+                        return new Metric(path, ((StringValueItem) item).getValue());
                     } else {
                         return null;
                     }
@@ -66,14 +66,14 @@ public abstract class ReportingHandler {
                 .forEach(this::sendReport);
     }
 
-    protected void sendReport(MetricItem reportItem) {
+    protected void sendReport(Metric reportItem) {
         if (notYetSent(reportItem)) {
             sentReports.add(reportItem);
             reporter.report(reportItem);
         }
     }
 
-    private boolean notYetSent(MetricItem reportItem) {
+    private boolean notYetSent(Metric reportItem) {
         return !sentReports.contains(reportItem);
     }
 }

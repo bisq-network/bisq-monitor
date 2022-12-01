@@ -15,22 +15,26 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.monitor.server.handlers;
+package bisq.monitor.monitor.utils;
 
-import bisq.core.monitor.ReportingItems;
-import bisq.monitor.reporter.Reporter;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Properties;
 
-import java.util.Map;
+public abstract class Configurable {
+    protected Properties configuration = new Properties();
+    private String name = getClass().getSimpleName();
 
-@Slf4j
-public class NetworkLoadHandler extends ReportingHandler {
-    public NetworkLoadHandler(Reporter reporter, Map<String, String> seedNodeOperatorByAddress) {
-        super(reporter, seedNodeOperatorByAddress);
+    public void configure(final Properties properties) {
+        Properties myProperties = new Properties();
+        properties.forEach((k, v) -> {
+            String key = (String) k;
+            if (key.startsWith(getName()))
+                myProperties.put(key.substring(key.indexOf(".") + 1), v);
+        });
+
+        this.configuration = myProperties;
     }
 
-    @Override
-    public void report(ReportingItems reportingItems) {
-        super.report(reportingItems, "network");
+    protected String getName() {
+        return name;
     }
 }

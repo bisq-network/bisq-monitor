@@ -19,7 +19,7 @@ package bisq.monitor.server.handlers;
 
 import bisq.common.util.Hex;
 import bisq.core.monitor.ReportingItems;
-import bisq.monitor.reporter.MetricItem;
+import bisq.monitor.reporter.Metric;
 import bisq.monitor.reporter.Reporter;
 import bisq.monitor.server.Util;
 import lombok.extern.slf4j.Slf4j;
@@ -41,20 +41,20 @@ public class NodeLoadHandler extends ReportingHandler {
         Util.findIntegerValue(reportingItems, "node.jvmStartTimeInSec")
                 .ifPresent(jvmStartTime -> {
                     long running = System.currentTimeMillis() / 1000 - jvmStartTime;
-                    sendReport(new MetricItem("node.jvmRunningInSec." + nodeId, running));
+                    sendReport(new Metric("node.jvmRunningInSec." + nodeId, running));
                 });
 
         Util.findStringValue(reportingItems, "node.version").ifPresent(version -> {
             try {
                 int versionAsInt = Integer.parseInt(version.replace(".", ""));
-                sendReport(new MetricItem("node.versionAsInt." + nodeId, versionAsInt));
+                sendReport(new Metric("node.versionAsInt." + nodeId, versionAsInt));
             } catch (Throwable ignore) {
             }
         });
         Util.findStringValue(reportingItems, "node.commitHash").ifPresent(commitHash -> {
             try {
                 int commitHashAsInt = new BigInteger(Hex.decode(commitHash)).intValue();
-                sendReport(new MetricItem("node.commitHashAsInt." + nodeId, commitHashAsInt));
+                sendReport(new Metric("node.commitHashAsInt." + nodeId, commitHashAsInt));
             } catch (Throwable ignore) {
             }
         });
