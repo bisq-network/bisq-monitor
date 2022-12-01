@@ -2,6 +2,7 @@ plugins {
     id 'application'
     alias(libs.plugins.openjfx)
     id 'bisq.post-build'
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
 }
 
 repositories {
@@ -47,12 +48,11 @@ dependencies {
     implementation libs.guice
     implementation libs.netlayer.tor
     implementation libs.netlayer.tor.native
-    implementation libs.logback.core
-    implementation libs.logback.classic
     compileOnly libs.lombok
     annotationProcessor libs.lombok
     implementation libs.slf4j.api
 
+    implementation "com.google.protobuf:protobuf-java:3.19.1"
     implementation libs.spark.core
     implementation "com.google.code.gson:gson:2.8.5"
     implementation("com.github.bisq-network:bitcoinj:42bbae9") {
@@ -64,6 +64,8 @@ dependencies {
         exclude(module: 'protobuf-java')
         exclude(module: 'slf4j-api')
     }
+    implementation "ch.qos.logback:logback-classic:1.1.11"
+    implementation "ch.qos.logback:logback-core:1.1.11"
 
     testAnnotationProcessor libs.lombok
     testCompileOnly libs.lombok

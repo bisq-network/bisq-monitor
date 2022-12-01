@@ -23,7 +23,6 @@ monitor/work/*
 /bundles
 /bisq-*
 /lib
-desktop.ini
 */target/*
 *.class
 deploy
@@ -32,4 +31,6 @@ deploy
 .localnet
 /.run
 monitor.properties
+
+/bisq-gradle/out/*
 

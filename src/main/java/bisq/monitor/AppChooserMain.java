@@ -21,10 +21,12 @@ package bisq.monitor;
 import bisq.monitor.dump.DataDumpMain;
 import bisq.monitor.monitor.MonitorMain;
 import bisq.monitor.server.ServerMain;
+import bisq.monitor.utils.PropertiesUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -49,14 +51,17 @@ public class AppChooserMain {
             if ("ServerMain".equals(app)) {
                 ServerMain.main(arguments);
             } else if ("DataDumpMain".equals(app)) {
+                Properties properties;
                 if (options.containsKey("--config")) {
                     String config = options.get("--config");
                     options.remove("--config");
                     arguments = toArguments(options);
-                    DataDumpMain.main(arguments, PropertiesUtil.getProperties(config));
+                    properties = PropertiesUtil.getProperties(config);
+                    DataDumpMain.main(arguments, properties);
                 } else {
-                    DataDumpMain.main(arguments);
+                    properties = PropertiesUtil.getProperties();
                 }
+                DataDumpMain.main(arguments, properties);
             }
         } else {
             MonitorMain.main(arguments);

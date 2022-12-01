@@ -24,28 +24,33 @@ import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.util.FormattingUtils;
 import bisq.core.util.VolumeUtil;
 import bisq.monitor.dump.ReporterProvider;
-import bisq.monitor.reporter.Metric;
+import bisq.monitor.reporter.Metrics;
 import bisq.monitor.reporter.Reporter;
 import bisq.network.p2p.storage.P2PDataStorage;
 import javafx.collections.SetChangeListener;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.params.MainNetParams;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.HashSet;
+import java.util.Optional;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Singleton
 @Slf4j
 public class TradeStatisticsHandler {
-    private final static String PREFIX = "TradeMetrics";
+    @Setter
+    private static Optional<Properties> monitorProperties = Optional.empty();
 
     private final Set<P2PDataStorage.ByteArray> alreadyProcessed = new HashSet<>();
     private final Reporter reporter;
     private final TradeStatisticsManager tradeStatisticsManager;
     private final TradeStatistics3StorageService tradeStatistics3StorageService;
+    private final long maxAgeInMinutes;
 
     @Inject
     public TradeStatisticsHandler(ReporterProvider reporterProvider,
@@ -54,10 +59,13 @@ public class TradeStatisticsHandler {
         this.reporter = reporterProvider.getReporter();
         this.tradeStatisticsManager = tradeStatisticsManager;
         this.tradeStatistics3StorageService = tradeStatistics3StorageService;
+
+        maxAgeInMinutes = monitorProperties.map(properties -> Long.parseLong(properties.getProperty("DataDump.TradeStatisticsHandler.maxAgeInMinutes", "30")))
+                .orElse(30L);
     }
 
     public void onAllServicesInitialized() {
-        long minDate = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(10000);
+        long minDate = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(maxAgeInMinutes);
         tradeStatistics3StorageService.getMapOfAllData().values().stream()
                 .filter(e -> e instanceof TradeStatistics3)
                 .map(e -> (TradeStatistics3) e)
@@ -68,36 +76,36 @@ public class TradeStatisticsHandler {
         tradeStatisticsManager.getObservableTradeStatisticsSet().addListener((SetChangeListener<TradeStatistics3>) change -> {
             TradeStatistics3 newItem = change.getElementAdded();
             if (isNotProcessed(newItem)) {
-                Set<Metric> reportItems = toMetrics(newItem);
+                Set<Metrics> reportItems = toMetrics(newItem);
                 sendReports(reportItems);
             }
         });
     }
 
-    private Set<Metric> toMetrics(TradeStatistics3 tradeStatistics) {
+    private Set<Metrics> toMetrics(TradeStatistics3 tradeStatistics) {
         alreadyProcessed.add(new P2PDataStorage.ByteArray(tradeStatistics.getHash()));
-        Set<Metric> metrics = new HashSet<>();
+        Set<Metrics> metrics = new HashSet<>();
 
         long timeStampInSec = tradeStatistics.getDateAsLong() / 1000;
         String market = CurrencyUtil.getCurrencyPair(tradeStatistics.getCurrency()).replace("/", "_");
 
-        String path = PREFIX + "." + "price" + "." + market;
+        String basePath = "tradeStatistics." + market;
+        String path = basePath + ".price";
         String value = FormattingUtils.formatPrice(tradeStatistics.getTradePrice());
-        metrics.add(new Metric(path, value, timeStampInSec));
+        metrics.add(new Metrics(path, value, timeStampInSec));
 
-        path = PREFIX + "." + "amount" + "." + market;
+        path = basePath + ".amount";
         value = new MainNetParams().getMonetaryFormat().noCode().format(tradeStatistics.getTradeAmount()).toString();
-        metrics.add(new Metric(path, value, timeStampInSec));
+        metrics.add(new Metrics(path, value, timeStampInSec));
 
-        path = PREFIX + "." + "volume" + "." + market;
+        path = basePath + ".volume";
         value = VolumeUtil.formatVolume(tradeStatistics.getTradeVolume());
-        metrics.add(new Metric(path, value, timeStampInSec));
+        metrics.add(new Metrics(path, value, timeStampInSec));
 
         return metrics;
     }
 
-    private void sendReports(Set<Metric> reportItems) {
-        log.error(reportItems.toString());
+    private void sendReports(Set<Metrics> reportItems) {
         reportItems.forEach(reporter::report);
     }
 
@@ -105,4 +113,6 @@ public class TradeStatisticsHandler {
         return !alreadyProcessed.contains(new P2PDataStorage.ByteArray(tradeStatistics.getHash()));
     }
 
+    public void shutDown() {
+    }
 }

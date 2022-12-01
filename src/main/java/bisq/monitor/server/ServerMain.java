@@ -19,12 +19,14 @@ package bisq.monitor.server;
 
 
 import bisq.common.UserThread;
+import bisq.common.app.AsciiLogo;
 import bisq.common.app.Log;
 import bisq.common.util.Utilities;
-import bisq.monitor.PropertiesUtil;
+import bisq.monitor.monitor.MonitorMain;
 import bisq.monitor.reporter.ConsoleReporter;
 import bisq.monitor.reporter.GraphiteReporter;
 import bisq.monitor.reporter.Reporter;
+import bisq.monitor.utils.PropertiesUtil;
 import ch.qos.logback.classic.Level;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import lombok.extern.slf4j.Slf4j;
@@ -33,14 +35,14 @@ import sun.misc.Signal;
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.Properties;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
 @Slf4j
 public class ServerMain {
-    private static boolean stopped;
     private static Server server;
+    private static RequestHandler requestHandler;
+    private static Reporter reporter;
 
     /**
      * @param args Can be empty or is property file path
@@ -53,51 +55,61 @@ public class ServerMain {
             properties = PropertiesUtil.getProperties(args[0].replace("--config=", ""));
         }
 
-        String appName = properties.getProperty("Server.appDir");
-        File appDir = new File(Utilities.getUserDataDir(), appName);
-        if (!appDir.exists() && !appDir.mkdir()) {
-            log.warn("make appDir failed");
-        }
-        setup(appDir);
+        setup(properties);
 
-        Reporter reporter = "true".equals(properties.getProperty("GraphiteReporter.enabled", "false")) ?
+        reporter = "true".equals(properties.getProperty("GraphiteReporter.enabled", "false")) ?
                 new GraphiteReporter(properties) : new ConsoleReporter();
-
-        CompletableFuture.runAsync(() -> server = new Server(properties, reporter),
-                Utilities.getSingleThreadExecutor("Server"));
+        requestHandler = new RequestHandler(reporter);
+        int port = Integer.parseInt(properties.getProperty("Server.port", "13003"));
+        server = new Server();
+        server.start(port, requestHandler);
 
         keepRunning();
     }
 
-    public static void setup(File appDir) {
+    public static void setup(Properties properties) {
+        Thread.currentThread().setName("ServerMain");
+
+        String appName = properties.getProperty("Server.appDir", "bisq-monitor-server");
+        File appDir = new File(Utilities.getUserDataDir(), appName);
+        if (!appDir.exists() && !appDir.mkdir()) {
+            log.warn("make appDir failed");
+        }
+
         String logPath = Paths.get(appDir.getPath(), "bisq").toString();
         Log.setup(logPath);
         Log.setLevel(Level.INFO);
+        AsciiLogo.showAsciiLogo();
 
         ThreadFactory threadFactory = new ThreadFactoryBuilder()
-                .setNameFormat(ServerMain.class.getSimpleName())
+                .setNameFormat(MonitorMain.class.getSimpleName() + "-UserThread")
                 .setDaemon(true)
                 .build();
         UserThread.setExecutor(Executors.newSingleThreadExecutor(threadFactory));
 
-        Signal.handle(new Signal("INT"), signal -> UserThread.execute(ServerMain::shutDown));
-        Signal.handle(new Signal("TERM"), signal -> UserThread.execute(ServerMain::shutDown));
 
-        Runtime.getRuntime().addShutdownHook(new Thread(ServerMain::shutDown, "Shutdown Hook"));
+        Signal.handle(new Signal("INT"), signal -> ServerMain.shutDown());
+        Signal.handle(new Signal("TERM"), signal -> ServerMain.shutDown());
     }
 
     public static void shutDown() {
-        stopped = true;
-
-        server.shutDown().thenRun(() -> System.exit(0));
+        log.info("ShutDown started");
+        server.shutDown()
+                .thenRun(() -> requestHandler.shutDown())
+                .thenRun(() -> reporter.shutDown())
+                .whenComplete((__, throwable) -> {
+                    if (throwable != null) {
+                        log.info("Error at shutdown.", throwable);
+                    }
+                    log.info("ShutDown completed");
+                    System.exit(0);
+                });
     }
 
     public static void keepRunning() {
-        while (!stopped) {
-            try {
-                Thread.sleep(Long.MAX_VALUE);
-            } catch (InterruptedException ignore) {
-            }
+        try {
+            Thread.sleep(Long.MAX_VALUE);
+        } catch (InterruptedException ignore) {
         }
     }
 }

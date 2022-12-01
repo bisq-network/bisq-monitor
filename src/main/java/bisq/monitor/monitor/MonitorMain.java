@@ -19,40 +19,36 @@ package bisq.monitor.monitor;
 
 
 import bisq.common.UserThread;
+import bisq.common.app.AsciiLogo;
 import bisq.common.app.Log;
+import bisq.common.app.Version;
+import bisq.common.config.BaseCurrencyNetwork;
 import bisq.common.config.Config;
 import bisq.common.util.Utilities;
+import bisq.core.locale.Res;
 import bisq.core.setup.CoreNetworkCapabilities;
-import bisq.monitor.PropertiesUtil;
-import bisq.monitor.monitor.tor.AvailableTor;
-import bisq.monitor.monitor.tor.TorNode;
 import bisq.monitor.reporter.ConsoleReporter;
 import bisq.monitor.reporter.GraphiteReporter;
 import bisq.monitor.reporter.Reporter;
-import bisq.monitor.server.Server;
+import bisq.monitor.utils.PropertiesUtil;
 import ch.qos.logback.classic.Level;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import lombok.extern.slf4j.Slf4j;
 import sun.misc.Signal;
 
-import javax.annotation.Nullable;
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
 @Slf4j
 public class MonitorMain {
-    private static boolean stopped;
     private static Monitor monitor;
-    @Nullable
-    private static Server server;
-    @Nullable
-    private static TorNode torNode;
-    @Nullable
-    private static TorBasedMonitor torBasedMonitor;
+    private static File appDir;
+    private static ExecutorService executor;
 
     /**
      * @param args Can be empty or is property file path
@@ -65,91 +61,68 @@ public class MonitorMain {
             properties = PropertiesUtil.getProperties(args[0].replace("--config=", ""));
         }
 
-        String appName = properties.getProperty("appDir");
-        File appDir = new File(Utilities.getUserDataDir(), appName);
-        if (!appDir.exists() && !appDir.mkdir()) {
-            log.warn("make appDir failed");
-        }
-        setup(appDir);
 
-        CoreNetworkCapabilities.setSupportedCapabilities(new Config());
+        setup(properties);
 
         Reporter reporter = "true".equals(properties.getProperty("GraphiteReporter.enabled", "false")) ?
                 new GraphiteReporter(properties) : new ConsoleReporter();
-        boolean useTor = properties.getProperty("useTor").equals("true");
-        boolean useServer = properties.getProperty("useServer").equals("true");
 
+        executor = Utilities.getSingleThreadExecutor("Monitor");
         CompletableFuture.runAsync(() -> {
-                    monitor = new Monitor(appDir, properties, reporter);
-                }, Utilities.getSingleThreadExecutor("Monitor"))
-                .thenRunAsync(() -> {
-                    if (useServer) {
-                        server = new Server(properties, reporter);
-                    }
-                }, Utilities.getSingleThreadExecutor("Server"))
-                .thenRunAsync(() -> {
-                    if (useTor) {
-                        AvailableTor.setAppDir(appDir);
-                        torNode = new TorNode(appDir);
-                    }
-                }, Utilities.getSingleThreadExecutor("TorNode"))
-                .thenRunAsync(() -> {
-                    if (useTor) {
-                        torBasedMonitor = new TorBasedMonitor(properties, reporter);
-                    }
-                }, Utilities.getSingleThreadExecutor("TorBasedMonitor"));
+            monitor = new Monitor(properties, reporter, appDir);
+            monitor.start();
+        }, executor);
 
         keepRunning();
     }
 
-    public static void setup(File appDir) {
+    public static void setup(Properties properties) {
+        Thread.currentThread().setName("MonitorMain");
+
+        String appName = properties.getProperty("Monitor.appDir");
+        appDir = new File(Utilities.getUserDataDir(), appName);
+        if (!appDir.exists() && !appDir.mkdir()) {
+            log.warn("make appDir failed");
+        }
+
         String logPath = Paths.get(appDir.getPath(), "bisq").toString();
         Log.setup(logPath);
         Log.setLevel(Level.INFO);
+        AsciiLogo.showAsciiLogo();
+
+        Config config = new Config();
+        CoreNetworkCapabilities.setSupportedCapabilities(config);
+        BaseCurrencyNetwork baseCurrencyNetwork = BaseCurrencyNetwork.valueOf(properties.getProperty("baseCurrencyNetwork", "BTC_REGTEST"));
+        Version.setBaseCryptoNetworkId(baseCurrencyNetwork.ordinal());
+        Res.setup();
 
         ThreadFactory threadFactory = new ThreadFactoryBuilder()
-                .setNameFormat(MonitorMain.class.getSimpleName())
+                .setNameFormat(MonitorMain.class.getSimpleName() + "-UserThread")
                 .setDaemon(true)
                 .build();
         UserThread.setExecutor(Executors.newSingleThreadExecutor(threadFactory));
 
-        Signal.handle(new Signal("INT"), signal -> UserThread.execute(MonitorMain::shutDown));
-        Signal.handle(new Signal("TERM"), signal -> UserThread.execute(MonitorMain::shutDown));
-
-        Runtime.getRuntime().addShutdownHook(new Thread(MonitorMain::shutDown, "Shutdown Hook"));
+        Signal.handle(new Signal("INT"), signal -> MonitorMain.shutDown());
+        Signal.handle(new Signal("TERM"), signal -> MonitorMain.shutDown());
     }
 
     public static void shutDown() {
-        stopped = true;
-        if (monitor == null) {
-            System.exit(0);
-            return;
-        }
-
+        log.info("ShutDown started");
         monitor.shutDown()
-                .thenRun(() -> {
-                    if (server != null) {
-                        server.shutDown();
+                .whenComplete((__, throwable) -> {
+                    if (throwable != null) {
+                        log.info("Error at shutdown.", throwable);
                     }
-                }).thenRun(() -> {
-                    if (torBasedMonitor != null) {
-                        torBasedMonitor.shutDown();
-                    }
-                })
-                .thenRun(() -> {
-                    if (torNode != null) {
-                        torNode.shutDown();
-                    }
-                })
-                .thenRun(() -> System.exit(0));
+                    executor.shutdownNow();
+                    log.info("ShutDown completed");
+                    System.exit(0);
+                });
     }
 
     public static void keepRunning() {
-        while (!stopped) {
-            try {
-                Thread.sleep(Long.MAX_VALUE);
-            } catch (InterruptedException ignore) {
-            }
+        try {
+            Thread.sleep(Long.MAX_VALUE);
+        } catch (InterruptedException ignore) {
         }
     }
 }

@@ -17,108 +17,125 @@
 
 package bisq.monitor.monitor;
 
-import bisq.common.app.Version;
-import bisq.common.config.BaseCurrencyNetwork;
-import bisq.common.util.Utilities;
-import bisq.core.locale.Res;
-import bisq.monitor.monitor.utils.Configurable;
 import bisq.monitor.reporter.Reporter;
+import bisq.network.p2p.NodeAddress;
+import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 import lombok.extern.slf4j.Slf4j;
+import org.berndpruenster.netlayer.tor.NativeTor;
+import org.berndpruenster.netlayer.tor.Tor;
+import org.berndpruenster.netlayer.tor.TorSocket;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.Socket;
 import java.util.Properties;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
-public abstract class MonitorTask extends Configurable implements Runnable {
-    private static final String INTERVAL = "interval";
-    private static ScheduledExecutorService executor;
+public abstract class MonitorTask {
+    protected final Properties properties;
     protected final Reporter reporter;
-    private ScheduledFuture<?> scheduler;
+    protected final int socketTimeout;
+    protected final boolean runSerial;
+    private final long interval;
+    private final boolean enabled;
+    private final File torDir;
+    private long lastRunTs;
+    protected boolean shutDownInProgress;
 
-    protected MonitorTask(Properties properties, Reporter reporter) {
-        super.configure(properties);
 
+    public MonitorTask(Properties properties, Reporter reporter, File appDir, boolean runSerial) {
+        this.properties = properties;
         this.reporter = reporter;
-        reporter.configure(properties);
 
-        if (executor == null) {
-            executor = new ScheduledThreadPoolExecutor(6);
+        socketTimeout = (int) TimeUnit.SECONDS.toMillis(Integer.parseInt(properties.getProperty("Monitor.socketTimeoutInSec", "120")));
+
+        String className = getClass().getSimpleName();
+        interval = Integer.parseInt(properties.getProperty("Monitor." + className + ".interval", "600")) * 1000L;
+        String runSerialFromProperties = properties.getProperty("Monitor." + className + ".runSerial", "");
+        if ("".equals(runSerialFromProperties)) {
+            this.runSerial = runSerial;
+        } else {
+            this.runSerial = "true".equals(runSerialFromProperties);
         }
 
-        BaseCurrencyNetwork baseCurrencyNetwork = BaseCurrencyNetwork.valueOf(properties.getProperty("baseCurrencyNetwork", "BTC_REGTEST"));
-        Version.setBaseCryptoNetworkId(baseCurrencyNetwork.ordinal());
-        Res.setup();
+        enabled = "true".equals(properties.getProperty("Monitor." + className + ".enabled", "false"));
+
+        torDir = new File(appDir, "tor");
     }
 
-    public void init() {
-        // decide whether to enable or disable the task
-        boolean isEnabled = configuration.getProperty("enabled", "false").equals("true");
-        if (configuration.isEmpty() || !isEnabled || !configuration.containsKey(INTERVAL)) {
-            stop();
-
-            // some informative log output
-            if (configuration.isEmpty())
-                log.error("{} is not configured at all. Will not run.", getName());
-            else if (!isEnabled)
-                log.debug("{} is deactivated. Will not run.", getName());
-            else if (!configuration.containsKey(INTERVAL))
-                log.error("{} is missing mandatory '" + INTERVAL + "' property. Will not run.", getName());
-            else
-                log.error("{} is mis-configured. Will not run.", getName());
-        } else if (!started()) {
-            // check if this Metric got activated after being disabled.
-            // if so, resume execution
-            start();
-            log.info("{} started", getName());
-        }
+    protected String getName() {
+        return getClass().getSimpleName();
     }
 
-    private void stop() {
-        if (scheduler != null)
-            scheduler.cancel(false);
-    }
+    public abstract void run();
 
-    private void start() {
-        scheduler = executor.scheduleWithFixedDelay(this, 0,
-                Long.parseLong(configuration.getProperty(INTERVAL)), TimeUnit.SECONDS);
-    }
-
-    boolean started() {
-        if (scheduler != null)
-            return !scheduler.isCancelled();
-        else
+    public boolean canRun() {
+        if (!enabled) {
             return false;
+        }
+        if (lastRunTs > System.currentTimeMillis() - interval) {
+            log.info("Skip {} because we have not passed our interval time", getName());
+            return false;
+        }
+
+        lastRunTs = System.currentTimeMillis();
+        return true;
     }
 
-    @Override
-    public void run() {
-        try {
-            Thread.currentThread().setName("MonitorTask: " + getName());
+    protected String getAddressForMetric(NodeAddress nodeAddress) {
+        return nodeAddress.getHostName().contains(".onion") ?
+                nodeAddress.getHostNameWithoutPostFix() :
+                nodeAddress.getFullAddress()
+                        .replace("http://", "")
+                        .replace("https://", "");
+    }
 
-            // execute all the things
-            synchronized (this) {
-                log.info("{} started", getName());
-                execute();
-                log.info("{} done", getName());
+    protected Socket getSocket(NodeAddress nodeAddress) throws IOException {
+        String hostName = nodeAddress.getHostName();
+        if (hostName.contains(".onion")) {
+            TorSocket torSocket = new TorSocket(hostName, nodeAddress.getPort(), null);
+            torSocket.setSoTimeout(socketTimeout);
+            return torSocket;
+        } else {
+            return new Socket(hostName, nodeAddress.getPort());
+        }
+    }
+
+    protected void maybeCreateTor() {
+        if (Tor.getDefault() != null) {
+            return;
+        }
+        try {
+            Tor.setDefault(new NativeTor(torDir, null, null));
+        } catch (Throwable e) {
+            log.error("Could not create tor. ", e);
+            torDir.delete();
+            throw new RuntimeException(e);
+        }
+    }
+
+    protected Socks5Proxy getProxy() {
+        maybeCreateTor();
+        try {
+            return Tor.getDefault().getProxy();
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    protected void shutdownTor() {
+        try {
+            if (Tor.getDefault() != null) {
+                Tor.getDefault().shutdown();
+                Tor.setDefault(null);
             }
         } catch (Throwable e) {
-            log.error("Error at executing monitor task", e);
+            log.error("Error at shut down tor. ", e);
         }
+
     }
 
-    /**
-     * Gets scheduled repeatedly.
-     */
-    protected abstract void execute();
-
-    /**
-     * initiate an orderly shutdown on all metrics. Blocks until all metrics are
-     * shut down or after one minute.
-     */
-    public static void haltAllMetrics() {
-        Utilities.shutdownAndAwaitTermination(executor, 5, TimeUnit.SECONDS);
-    }
+    abstract public CompletableFuture<Void> shutDown();
 }

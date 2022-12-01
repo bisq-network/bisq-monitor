@@ -19,58 +19,62 @@ package bisq.monitor.reporter;
 
 import lombok.Value;
 
+import java.util.Date;
+
 @Value
-public class Metric {
+public class Metrics {
     public static final String ROOT = "bisq_v2";
     String path;
     String value;
     long timeStampInSec;
 
 
-    public Metric(String path, String value, long timeStampInSec) {
+    public Metrics(String path, String value, long timeStampInSec) {
         this.path = ROOT + "." + path;
         this.value = value;
         this.timeStampInSec = timeStampInSec;
     }
 
-    public Metric(String path, String value) {
+    public Metrics(String path, String value) {
         this(path, value, System.currentTimeMillis() / 1000);
     }
 
-    public Metric(String prefix, String key, String value) {
+    public Metrics(String prefix, String key, String value) {
         this(prefix.isEmpty() ? key : prefix + "." + key, value);
     }
 
-    public Metric(String prefix, String key, String value, long timeStampInSec) {
+    public Metrics(String prefix, String key, String value, long timeStampInSec) {
         this(prefix.isEmpty() ? key : prefix + "." + key, value, timeStampInSec);
     }
 
-    public Metric(String path, int value, long timeStampInSec) {
+    public Metrics(String path, int value, long timeStampInSec) {
         this(path, String.valueOf(value), timeStampInSec);
     }
 
-    public Metric(String path, int value) {
+    public Metrics(String path, int value) {
         this(path, String.valueOf(value));
     }
 
-    public Metric(String path, long value, long timeStampInSec) {
+    public Metrics(String path, long value, long timeStampInSec) {
         this(path, String.valueOf(value), timeStampInSec);
     }
 
-    public Metric(String path, double value) {
+    public Metrics(String path, long value) {
         this(path, String.valueOf(value));
     }
 
-    public Metric(String path, double value, long timeStampInSec) {
+    public Metrics(String path, double value) {
+        this(path, String.valueOf(value));
+    }
+
+    public Metrics(String path, double value, long timeStampInSec) {
         this(path, String.valueOf(value), timeStampInSec);
     }
 
     @Override
     public String toString() {
-        return "MetricItem{" +
-                "\r\n     path='" + path + '\'' +
-                ",\r\n     value='" + value + '\'' +
-                ",\r\n     timeStampInSec=" + timeStampInSec +
-                "\r\n}";
+        return "Metrics {path='" + path + '\'' +
+                ", value='" + value + '\'' +
+                ", timeStampInSec=" + timeStampInSec + " (" + new Date(timeStampInSec * 1000L) + ")}";
     }
 }

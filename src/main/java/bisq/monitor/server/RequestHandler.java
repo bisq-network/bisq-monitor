@@ -17,49 +17,63 @@
 
 package bisq.monitor.server;
 
-import bisq.common.util.Hex;
 import bisq.core.monitor.ReportingItems;
 import bisq.monitor.reporter.Reporter;
 import bisq.monitor.server.handlers.*;
+import bisq.monitor.utils.Util;
 import lombok.extern.slf4j.Slf4j;
 import spark.Request;
 import spark.Response;
 
 import java.util.HashSet;
-import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 @Slf4j
 public class RequestHandler {
     private final Set<ReportingHandler> reportingHandlers = new HashSet<>();
+    private final ExecutorService executor;
 
-    public RequestHandler(Properties properties, Reporter reporter) {
-        Map<String, String> seedNodeOperatorByAddress = Util.getOperatorByNodeAddress(properties.getProperty("baseCurrencyNetwork"));
+    public RequestHandler(Reporter reporter) {
+        reportingHandlers.add(new DaoStateHandler(reporter));
+        reportingHandlers.add(new NetworkDataHandler(reporter));
+        reportingHandlers.add(new NodeLoadHandler(reporter));
+        reportingHandlers.add(new NetworkLoadHandler(reporter));
 
-        reportingHandlers.add(new DaoStateHandler(reporter, seedNodeOperatorByAddress));
-        reportingHandlers.add(new NetworkDataHandler(reporter, seedNodeOperatorByAddress));
-        reportingHandlers.add(new NodeLoadHandler(reporter, seedNodeOperatorByAddress));
-        reportingHandlers.add(new NetworkLoadHandler(reporter, seedNodeOperatorByAddress));
-    }
-
-    public void shutdown() {
+        executor = Util.newCachedThreadPool(20);
     }
 
     public String onRequest(Request request, Response response) {
-        String hex = request.body();
-        checkArgument(hex != null && !hex.trim().isEmpty());
+        byte[] protoMessageAsBytes = request.bodyAsBytes();
         try {
-            ReportingItems reportingItems = ReportingItems.fromProtoMessageAsBytes(Hex.decode(hex));
-            reportingHandlers.forEach(handler -> CompletableFuture.runAsync(() -> handler.report(reportingItems)));
+            checkArgument(protoMessageAsBytes != null && protoMessageAsBytes.length > 0);
+            ReportingItems reportingItems = ReportingItems.fromProtoMessageAsBytes(protoMessageAsBytes);
+            log.info("Received from {} reportingItems {}", request.userAgent(), reportingItems);
+            try {
+                reportingHandlers.forEach(handler -> CompletableFuture.runAsync(() -> {
+                    try {
+                        handler.report(reportingItems);
+                    } catch (Throwable t) {
+                        log.error("Error at report call on {}. Error message: {}", handler.getClass().getSimpleName(), t.getMessage());
+                    }
+                }, executor));
+            } catch (Throwable t) {
+                log.error("Error at onRequest", t);
+            }
             response.status(200);
         } catch (Throwable t) {
             log.error("Error at onRequest", t);
             response.status(500);
         }
+
         return "";
+    }
+
+    public CompletableFuture<Void> shutDown() {
+        return CompletableFuture.runAsync(executor::shutdownNow, Executors.newSingleThreadExecutor());
     }
 }

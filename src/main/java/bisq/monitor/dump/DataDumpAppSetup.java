@@ -31,6 +31,7 @@ import bisq.core.dao.governance.proposal.MyProposalListService;
 import bisq.core.filter.FilterManager;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.core.user.Preferences;
+import bisq.monitor.dump.handlers.OffersHandler;
 import bisq.monitor.dump.handlers.TradeStatisticsHandler;
 import bisq.network.p2p.P2PService;
 import bisq.network.p2p.peers.PeerManager;
@@ -44,6 +45,7 @@ import javax.inject.Singleton;
 @Slf4j
 public class DataDumpAppSetup extends AppSetupWithP2PAndDAO {
     private final TradeStatisticsHandler tradeStatisticsHandler;
+    private final OffersHandler offersHandler;
 
     @Inject
     public DataDumpAppSetup(P2PService p2PService,
@@ -62,6 +64,7 @@ public class DataDumpAppSetup extends AppSetupWithP2PAndDAO {
                             MyProofOfBurnListService myProofOfBurnListService,
                             Preferences preferences,
                             TradeStatisticsHandler tradeStatisticsHandler,
+                            OffersHandler offersHandler,
                             Config config) {
         super(p2PService,
                 p2PDataStorage,
@@ -80,6 +83,7 @@ public class DataDumpAppSetup extends AppSetupWithP2PAndDAO {
                 preferences,
                 config);
         this.tradeStatisticsHandler = tradeStatisticsHandler;
+        this.offersHandler = offersHandler;
     }
 
     @Override
@@ -87,5 +91,6 @@ public class DataDumpAppSetup extends AppSetupWithP2PAndDAO {
         super.onBasicServicesInitialized();
 
         tradeStatisticsHandler.onAllServicesInitialized();
+        offersHandler.onAllServicesInitialized();
     }
 }

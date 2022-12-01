@@ -21,22 +21,21 @@ import bisq.core.monitor.DoubleValueItem;
 import bisq.core.monitor.IntegerValueItem;
 import bisq.core.monitor.ReportingItems;
 import bisq.core.monitor.StringValueItem;
-import bisq.monitor.reporter.Metric;
+import bisq.monitor.reporter.Metrics;
 import bisq.monitor.reporter.Reporter;
-import bisq.monitor.server.Util;
+import bisq.monitor.utils.Util;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
+@Slf4j
 public abstract class ReportingHandler {
     protected final Reporter reporter;
-    protected final Map<String, String> seedNodeOperatorByAddress;
-    private final Set<Metric> sentReports = new HashSet<>();
+    private final Set<Metrics> sentReports = new HashSet<>();
 
-    public ReportingHandler(Reporter reporter, Map<String, String> seedNodeOperatorByAddress) {
+    public ReportingHandler(Reporter reporter) {
         this.reporter = reporter;
-        this.seedNodeOperatorByAddress = seedNodeOperatorByAddress;
     }
 
     public abstract void report(ReportingItems reportingItems);
@@ -46,19 +45,19 @@ public abstract class ReportingHandler {
     }
 
     public void report(ReportingItems reportingItems, String group, Set<String> excludedKeys) {
-        String nodeId = Util.getNodeId(reportingItems, seedNodeOperatorByAddress);
+        String address = Util.cleanAddress(reportingItems.getAddress());
         reportingItems.stream()
                 .filter(item -> item.getGroup().equals(group))
                 .filter(item -> !excludedKeys.contains(item.getKey()))
                 .map(item -> {
-                    String path = item.getPath() + "." + nodeId;
+                    String path = "seedNodes." + address + ".seedReport." + item.getPath();
                     if (item instanceof IntegerValueItem) {
-                        return new Metric(path, ((IntegerValueItem) item).getValue());
+                        return new Metrics(path, ((IntegerValueItem) item).getValue());
                     } else if (item instanceof DoubleValueItem) {
-                        return new Metric(path, ((DoubleValueItem) item).getValue());
+                        return new Metrics(path, ((DoubleValueItem) item).getValue());
                     }
                     if (item instanceof StringValueItem) {
-                        return new Metric(path, ((StringValueItem) item).getValue());
+                        return new Metrics(path, ((StringValueItem) item).getValue());
                     } else {
                         return null;
                     }
@@ -66,14 +65,14 @@ public abstract class ReportingHandler {
                 .forEach(this::sendReport);
     }
 
-    protected void sendReport(Metric reportItem) {
+    protected void sendReport(Metrics reportItem) {
         if (notYetSent(reportItem)) {
             sentReports.add(reportItem);
             reporter.report(reportItem);
         }
     }
 
-    private boolean notYetSent(Metric reportItem) {
+    private boolean notYetSent(Metrics reportItem) {
         return !sentReports.contains(reportItem);
     }
 }

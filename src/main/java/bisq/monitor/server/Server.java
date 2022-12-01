@@ -17,33 +17,23 @@
 
 package bisq.monitor.server;
 
-import bisq.monitor.reporter.Reporter;
 import lombok.extern.slf4j.Slf4j;
 import spark.Spark;
 
-import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 
 @Slf4j
 public class Server {
-    private final RequestHandler requestHandler;
 
-    public Server(Properties properties, Reporter reporter) {
-        requestHandler = new RequestHandler(properties, reporter);
+    public Server() {
+    }
+
+    public void start(int port, RequestHandler requestHandler) {
         try {
-            int port = Integer.parseInt(properties.getProperty("Server.port"));
             Spark.port(port);
-
-            boolean useTLS = "true".equals(properties.getProperty("Server.useTLS"));
-            if (useTLS) {
-                String keystoreFile = properties.getProperty("Server.keystoreFile");
-                String keystorePassword = properties.getProperty("Server.keystorePassword");
-                String truststoreFile = properties.getProperty("Server.truststoreFile");
-                String truststorePassword = properties.getProperty("Server.truststorePassword");
-                Spark.secure(keystoreFile, keystorePassword, truststoreFile, truststorePassword);
-            }
             Spark.post("/", requestHandler::onRequest);
-            log.info("Server setup for listening on port {}", port);
+            log.info("Server listening on port {}", port);
         } catch (Throwable t) {
             Spark.stop();
             log.error("Server setup failed", t);
@@ -53,7 +43,12 @@ public class Server {
     public CompletableFuture<Void> shutDown() {
         return CompletableFuture.runAsync(() -> {
             Spark.stop();
-            requestHandler.shutdown();
-        });
+            try {
+                // Spark does not offer a call back when the server is stopped (it starts a thread for it), 
+                // so we give a bit of time to be sure it gets gracefully shut down.
+                Thread.sleep(500);
+            } catch (InterruptedException ignore) {
+            }
+        }, Executors.newSingleThreadExecutor());
     }
 }

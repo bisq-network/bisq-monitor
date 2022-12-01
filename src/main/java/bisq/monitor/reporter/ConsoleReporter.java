@@ -24,12 +24,12 @@ import java.util.Set;
 @Slf4j
 public class ConsoleReporter extends Reporter {
     @Override
-    public void report(Metric metric) {
-        System.out.println(metric.toString());
+    public void report(Metrics metrics) {
+        System.out.println("ConsoleReporter: " + metrics.toString());
     }
 
     @Override
-    public void report(Set<Metric> metrics) {
+    public void report(Set<Metrics> metrics) {
         metrics.forEach(this::report);
     }
 }

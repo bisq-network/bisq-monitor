@@ -17,6 +17,7 @@
 
 package bisq.monitor.reporter;
 
+import bisq.monitor.utils.Util;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.OutputStream;
@@ -52,17 +53,17 @@ public class BatchWriter {
     private final int port;
 
     public BatchWriter(Properties properties) {
-        String[] tokens = properties.getProperty("GraphiteReporter.serviceUrl").split(":");
+        String[] tokens = properties.getProperty("GraphiteReporter.pickle").split(":");
         host = tokens[0];
-        port = Integer.parseInt(properties.getProperty("GraphiteReporter.picklePort"));
+        port = Integer.parseInt(tokens[1]);
     }
 
     // https://graphite.readthedocs.io/en/latest/feeding-carbon.html
-    public CompletableFuture<Boolean> report(Collection<Metric> metrics) {
+    public CompletableFuture<Boolean> report(Collection<Metrics> metricsCollection) {
         return CompletableFuture.supplyAsync(() -> {
             try (Socket socket = new Socket(host, port);
                  OutputStream outputStream = socket.getOutputStream()) {
-                String payload = serializeMetricItems(metrics);
+                String payload = serializeMetricItems(metricsCollection);
                 int length = payload.length();
                 byte[] header = ByteBuffer.allocate(4).putInt(length).array();
                 outputStream.write(header);
@@ -71,17 +72,17 @@ public class BatchWriter {
                 writer.flush();
                 return true;
             } catch (Throwable e) {
-                log.warn("Error writing to Graphite: {}", e.getMessage());
+                log.error("Error writing to Graphite: {}", e.getMessage());
                 return false;
             }
-        });
+        }, Util.newCachedThreadPool(20));
     }
 
-    private static String serializeMetricItems(Collection<Metric> metrics) {
+    private static String serializeMetricItems(Collection<Metrics> metrics) {
         StringBuilder pickled = new StringBuilder(metrics.size() * 75);
         pickled.append(MARK).append(LIST);
 
-        for (Metric tuple : metrics) {
+        for (Metrics tuple : metrics) {
             // begin outer tuple
             pickled.append(MARK);
 

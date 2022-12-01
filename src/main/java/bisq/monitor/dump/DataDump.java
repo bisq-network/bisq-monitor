@@ -21,6 +21,8 @@ import bisq.core.app.misc.AppSetup;
 import bisq.core.offer.OfferBookService;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.statistics.TradeStatisticsManager;
+import bisq.monitor.dump.handlers.OffersHandler;
+import bisq.monitor.dump.handlers.TradeStatisticsHandler;
 import bisq.network.p2p.BootstrapListener;
 import bisq.network.p2p.P2PService;
 import com.google.inject.Injector;
@@ -60,5 +62,13 @@ public class DataDump {
 
         appSetup = injector.getInstance(DataDumpAppSetup.class);
         appSetup.start();
+    }
+
+    public void shutDown() {
+        TradeStatisticsHandler tradeStatisticsHandler = injector.getInstance(TradeStatisticsHandler.class);
+        OffersHandler offersHandler = injector.getInstance(OffersHandler.class);
+        tradeStatisticsHandler.shutDown();
+        offersHandler.shutDown();
+
     }
 }

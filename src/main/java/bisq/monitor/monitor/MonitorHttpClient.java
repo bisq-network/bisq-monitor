@@ -15,10 +15,9 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.monitor.monitor.utils;
+package bisq.monitor.monitor;
 
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
-import com.runjva.sourceforge.jsocks.protocol.SocksException;
 import com.runjva.sourceforge.jsocks.protocol.SocksSocket;
 import lombok.extern.slf4j.Slf4j;
 
@@ -27,34 +26,36 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.URI;
-import java.net.UnknownHostException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
 @Slf4j
 public class MonitorHttpClient {
-    public static MonitorHttpClient config(String address) {
-        return new MonitorHttpClient(address);
+    public static MonitorHttpClient config(String address, int socketTimeout) {
+        return new MonitorHttpClient(address, socketTimeout);
     }
 
-    public static MonitorHttpClient config(String hostName, int port, Socks5Proxy proxy) {
-        return new MonitorHttpClient(hostName, port, proxy);
+    public static MonitorHttpClient config(String hostName, int port, Socks5Proxy proxy, int socketTimeout) {
+        return new MonitorHttpClient(hostName, port, proxy, socketTimeout);
     }
 
     private String host;
     private int port;
     private Socks5Proxy proxy;
     private String address;
+    private final int socketTimeout;
 
-    private MonitorHttpClient(String address) {
+    private MonitorHttpClient(String address, int socketTimeout) {
         this.address = address;
+        this.socketTimeout = socketTimeout;
     }
 
-    private MonitorHttpClient(String host, int port, Socks5Proxy proxy) {
+    private MonitorHttpClient(String host, int port, Socks5Proxy proxy, int socketTimeout) {
         this.host = host;
         this.port = port;
         this.proxy = proxy;
+        this.socketTimeout = socketTimeout;
     }
 
     public String get(String query) throws IOException {
@@ -80,6 +81,7 @@ public class MonitorHttpClient {
 
     public String getWithTor(String route) throws IOException {
         try (SocksSocket socket = new SocksSocket(proxy, host, port)) {
+            socket.setSoTimeout(socketTimeout);
             try (PrintWriter printWriter = new PrintWriter(socket.getOutputStream())) {
                 printWriter.println("GET /" + route);
                 printWriter.println();
@@ -95,7 +97,7 @@ public class MonitorHttpClient {
                     throw new IOException(e);
                 }
             }
-        } catch (SocksException | UnknownHostException e) {
+        } catch (Throwable e) {
             throw new IOException(e);
         }
     }

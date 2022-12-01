@@ -19,43 +19,44 @@ package bisq.monitor.server.handlers;
 
 import bisq.common.util.Hex;
 import bisq.core.monitor.ReportingItems;
-import bisq.monitor.reporter.Metric;
+import bisq.monitor.reporter.Metrics;
 import bisq.monitor.reporter.Reporter;
-import bisq.monitor.server.Util;
+import bisq.monitor.utils.Util;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigInteger;
-import java.util.Map;
 import java.util.Set;
 
 @Slf4j
 public class NodeLoadHandler extends ReportingHandler {
-    public NodeLoadHandler(Reporter reporter, Map<String, String> seedNodeOperatorByAddress) {
-        super(reporter, seedNodeOperatorByAddress);
+    public NodeLoadHandler(Reporter reporter) {
+        super(reporter);
     }
 
     @Override
     public void report(ReportingItems reportingItems) {
         super.report(reportingItems, "node", Set.of("address", "version", "commitHash", "jvmStartTime"));
-        String nodeId = Util.getNodeId(reportingItems, seedNodeOperatorByAddress);
+        String address = Util.cleanAddress(reportingItems.getAddress());
+        String path = "seedNodes." + address + ".seedReport.node.";
         Util.findIntegerValue(reportingItems, "node.jvmStartTimeInSec")
                 .ifPresent(jvmStartTime -> {
                     long running = System.currentTimeMillis() / 1000 - jvmStartTime;
-                    sendReport(new Metric("node.jvmRunningInSec." + nodeId, running));
+                    sendReport(new Metrics(path + "jvmRunningInSec", running));
                 });
 
         Util.findStringValue(reportingItems, "node.version").ifPresent(version -> {
             try {
                 int versionAsInt = Integer.parseInt(version.replace(".", ""));
-                sendReport(new Metric("node.versionAsInt." + nodeId, versionAsInt));
+                sendReport(new Metrics(path + "versionAsInt", versionAsInt));
             } catch (Throwable ignore) {
             }
         });
         Util.findStringValue(reportingItems, "node.commitHash").ifPresent(commitHash -> {
             try {
                 int commitHashAsInt = new BigInteger(Hex.decode(commitHash)).intValue();
-                sendReport(new Metric("node.commitHashAsInt." + nodeId, commitHashAsInt));
-            } catch (Throwable ignore) {
+                sendReport(new Metrics(path + "commitHashAsInt", commitHashAsInt));
+            } catch (Throwable e) {
+                log.error("Could not convert commit hash. commitHash={}; error={}", commitHash, e);
             }
         });
     }

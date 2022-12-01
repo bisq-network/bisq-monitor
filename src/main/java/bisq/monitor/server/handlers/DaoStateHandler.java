@@ -19,9 +19,9 @@ package bisq.monitor.server.handlers;
 
 import bisq.common.util.Tuple2;
 import bisq.core.monitor.ReportingItems;
-import bisq.monitor.reporter.Metric;
+import bisq.monitor.reporter.Metrics;
 import bisq.monitor.reporter.Reporter;
-import bisq.monitor.server.Util;
+import bisq.monitor.utils.Util;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
@@ -30,10 +30,10 @@ import java.util.stream.Collectors;
 
 @Slf4j
 public class DaoStateHandler extends ReportingHandler {
-    private final Map<Tuple2<Integer, Integer>, Map<String, Map<String, Map<String, Metric>>>> map = new ConcurrentHashMap<>();
+    private final Map<Tuple2<Integer, Integer>, Map<String, Map<String, Map<String, Metrics>>>> map = new ConcurrentHashMap<>();
 
-    public DaoStateHandler(Reporter reporter, Map<String, String> seedNodeOperatorByAddress) {
-        super(reporter, seedNodeOperatorByAddress);
+    public DaoStateHandler(Reporter reporter) {
+        super(reporter);
     }
 
     @Override
@@ -43,26 +43,26 @@ public class DaoStateHandler extends ReportingHandler {
         try {
             int height = Util.findIntegerValue(reportingItems, "dao.daoStateChainHeight").orElseThrow();
             int blockTimeIsSec = Util.findIntegerValue(reportingItems, "dao.blockTimeIsSec").orElseThrow();
-            String nodeId = Util.getNodeId(reportingItems, seedNodeOperatorByAddress);
             pruneMap(map, height);
-
+            String address = Util.cleanAddress(reportingItems.getAddress());
             String daoStateHash = Util.findStringValue(reportingItems, "dao.daoStateHash").orElseThrow();
-            fillHashValue(map, nodeId, height, blockTimeIsSec, "daoStateHash", daoStateHash);
+            fillHashValue(map, address, height, blockTimeIsSec, "daoStateHash", daoStateHash);
 
             String proposalHash = Util.findStringValue(reportingItems, "dao.proposalHash").orElseThrow();
-            fillHashValue(map, nodeId, height, blockTimeIsSec, "proposalHash", proposalHash);
+            fillHashValue(map, address, height, blockTimeIsSec, "proposalHash", proposalHash);
 
             String blindVoteHash = Util.findStringValue(reportingItems, "dao.blindVoteHash").orElseThrow();
-            fillHashValue(map, nodeId, height, blockTimeIsSec, "blindVoteHash", blindVoteHash);
+            fillHashValue(map, address, height, blockTimeIsSec, "blindVoteHash", blindVoteHash);
 
-            Set<Metric> metrics = getMetricItems(map);
-            metrics.add(new Metric("dao.height." + nodeId, height, blockTimeIsSec));
+            Set<Metrics> metrics = getMetricItems(map);
+            String path = "seedNodes." + address + ".seedReport.dao.height";
+            metrics.add(new Metrics(path, height, blockTimeIsSec));
             metrics.forEach(this::sendReport);
         } catch (Throwable ignore) {
         }
     }
 
-    private static void fillHashValue(Map<Tuple2<Integer, Integer>, Map<String, Map<String, Map<String, Metric>>>> map,
+    private static void fillHashValue(Map<Tuple2<Integer, Integer>, Map<String, Map<String, Map<String, Metrics>>>> map,
                                       String nodeId,
                                       int height,
                                       int blockTimeIsSec,
@@ -70,20 +70,20 @@ public class DaoStateHandler extends ReportingHandler {
                                       String hashValue) {
         Tuple2<Integer, Integer> blockHeightTuple = new Tuple2<>(height, blockTimeIsSec);
         map.putIfAbsent(blockHeightTuple, new HashMap<>());
-        Map<String, Map<String, Map<String, Metric>>> mapByHashType = map.get(blockHeightTuple);
+        Map<String, Map<String, Map<String, Metrics>>> mapByHashType = map.get(blockHeightTuple);
         mapByHashType.putIfAbsent(hashType, new HashMap<>());
-        Map<String, Map<String, Metric>> setByHashValue = mapByHashType.get(hashType);
+        Map<String, Map<String, Metrics>> setByHashValue = mapByHashType.get(hashType);
         setByHashValue.putIfAbsent(hashValue, new HashMap<>());
-        Map<String, Metric> metricItemByNodeId = setByHashValue.get(hashValue);
+        Map<String, Metrics> metricItemByNodeId = setByHashValue.get(hashValue);
         metricItemByNodeId.putIfAbsent(nodeId, null);
     }
 
-    private static Set<Metric> getMetricItems(Map<Tuple2<Integer, Integer>, Map<String, Map<String, Map<String, Metric>>>> map) {
-        Set<Metric> metrics = new HashSet<>();
+    private static Set<Metrics> getMetricItems(Map<Tuple2<Integer, Integer>, Map<String, Map<String, Map<String, Metrics>>>> map) {
+        Set<Metrics> metrics = new HashSet<>();
         map.forEach((blockHeightTuple, mapByHashType) -> {
             int blockTimeIsSec = blockHeightTuple.second;
             mapByHashType.forEach((hashType, byHashValue) -> {
-                Comparator<Map.Entry<String, Map<String, Metric>>> entryComparator = Comparator.comparing(e -> e.getValue().size());
+                Comparator<Map.Entry<String, Map<String, Metrics>>> entryComparator = Comparator.comparing(e -> e.getValue().size());
                 List<String> rankedHashBuckets = byHashValue.entrySet().stream()
                         .sorted(entryComparator.reversed())
                         .map(Map.Entry::getKey)
@@ -103,9 +103,13 @@ public class DaoStateHandler extends ReportingHandler {
                     }
 
                     int finalIndex = index;
-                    Map<String, Metric> updated = metricItemByNodeId.entrySet().stream()
+                    Map<String, Metrics> updated = metricItemByNodeId.entrySet().stream()
                             .collect(Collectors.toMap(Map.Entry::getKey,
-                                    entry -> new Metric("dao." + hashType + "." + entry.getKey(), finalIndex, blockTimeIsSec)));
+                                    entry -> {
+                                        String address = entry.getKey();
+                                        String path = "seedNodes." + address + ".seedReport.dao." + hashType;
+                                        return new Metrics(path, finalIndex, blockTimeIsSec);
+                                    }));
                     metricItemByNodeId.putAll(updated);
                     metrics.addAll(updated.values());
                 });
@@ -114,7 +118,7 @@ public class DaoStateHandler extends ReportingHandler {
         return metrics;
     }
 
-    private void pruneMap(Map<Tuple2<Integer, Integer>, Map<String, Map<String, Map<String, Metric>>>> map, int height) {
+    private void pruneMap(Map<Tuple2<Integer, Integer>, Map<String, Map<String, Map<String, Metrics>>>> map, int height) {
         int minHeight = height - 2;
         var pruned = map.entrySet().stream()
                 .filter(e -> e.getKey().first > minHeight)

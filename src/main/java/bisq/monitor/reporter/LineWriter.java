@@ -17,6 +17,7 @@
 
 package bisq.monitor.reporter;
 
+import bisq.monitor.utils.Util;
 import com.google.common.base.Charsets;
 import lombok.extern.slf4j.Slf4j;
 
@@ -35,22 +36,22 @@ public class LineWriter {
 
     public LineWriter(Properties properties) {
         super();
-        String[] tokens = properties.getProperty("GraphiteReporter.serviceUrl").split(":");
+        String[] tokens = properties.getProperty("GraphiteReporter.plain").split(":");
         host = tokens[0];
         port = Integer.parseInt(tokens[1]);
     }
 
-    public CompletableFuture<Boolean> report(Metric metric) {
+    public CompletableFuture<Boolean> report(Metrics metrics) {
         // trailing line break is needed
-        String payload = metric.getPath() + " " + metric.getValue() + " " + metric.getTimeStampInSec() + "\n";
+        String payload = metrics.getPath() + " " + metrics.getValue() + " " + metrics.getTimeStampInSec() + "\n";
         return CompletableFuture.supplyAsync(() -> {
             try (Socket socket = new Socket(host, port)) {
                 socket.getOutputStream().write(payload.getBytes(Charsets.UTF_8));
                 return true;
             } catch (Exception e) {
-                log.warn("Error writing to Graphite: {}", e.getMessage());
+                log.error("Error writing to Graphite: {}", e.getMessage());
                 return false;
             }
-        });
+        }, Util.newCachedThreadPool(20));
     }
 }

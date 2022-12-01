@@ -19,8 +19,13 @@ package bisq.monitor.dump;
 
 import bisq.common.UserThread;
 import bisq.common.app.AppModule;
+import bisq.common.app.Version;
+import bisq.common.setup.GracefulShutDownHandler;
 import bisq.core.app.misc.ExecutableForAppWithP2p;
 import bisq.core.app.misc.ModuleForAppWithP2p;
+import bisq.monitor.dump.handlers.OffersHandler;
+import bisq.monitor.dump.handlers.TradeStatisticsHandler;
+import bisq.monitor.utils.PropertiesUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;
@@ -28,29 +33,28 @@ import java.util.Properties;
 
 @Slf4j
 public class DataDumpMain extends ExecutableForAppWithP2p {
-    private static final String VERSION = "1.0.0";
     private DataDump dataDump;
 
-    public DataDumpMain() {
-        super("Bisq Statsnode", "bisq-statistics", "bisq_statistics", VERSION);
+    public DataDumpMain(String appDir) {
+        super("DataDumpMain", "", appDir, Version.VERSION);
     }
 
     public static void main(String[] args, Properties monitorProperties) {
         ReporterProvider.setMonitorProperties(Optional.of(monitorProperties));
-        log.info("BisqNetworkDataMonitorMain.VERSION: " + VERSION);
-        new DataDumpMain().execute(args);
+        TradeStatisticsHandler.setMonitorProperties(Optional.of(monitorProperties));
+        OffersHandler.setMonitorProperties(Optional.of(monitorProperties));
+
+        String appDir = monitorProperties.getProperty("DataDump.appDir", "bisq-monitor-datadump");
+        new DataDumpMain(appDir).execute(args);
     }
 
     public static void main(String[] args) {
-        log.info("BisqNetworkDataMonitorMain.VERSION: " + VERSION);
-        new DataDumpMain().execute(args);
+        main(args, PropertiesUtil.getProperties());
     }
 
     @Override
     protected void doExecute() {
         super.doExecute();
-
-        checkMemory(config, this);
 
         keepRunning();
     }
@@ -76,6 +80,11 @@ public class DataDumpMain extends ExecutableForAppWithP2p {
         super.onApplicationLaunched();
     }
 
+    @Override
+    public void handleUncaughtException(Throwable throwable, boolean doShutDown) {
+        log.error("Shut down because of unhandled exception", throwable);
+        System.exit(1);
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////
     // We continue with a series of synchronous execution tasks
@@ -98,5 +107,11 @@ public class DataDumpMain extends ExecutableForAppWithP2p {
         super.startApplication();
 
         dataDump.startApplication();
+    }
+
+    @Override
+    protected void shutDown(GracefulShutDownHandler gracefulShutDownHandler) {
+        super.shutDown(gracefulShutDownHandler);
+        dataDump.shutDown();
     }
 }

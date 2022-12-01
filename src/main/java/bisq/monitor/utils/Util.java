@@ -1,4 +1,4 @@
-package bisq.monitor.server;/*
+package bisq.monitor.utils;/*
  * This file is part of Bisq.
  *
  * Bisq is free software: you can redistribute it and/or modify it
@@ -20,41 +20,42 @@ import bisq.core.monitor.ReportingItem;
 import bisq.core.monitor.StringValueItem;
 import bisq.core.network.p2p.seed.DefaultSeedNodeRepository;
 
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class Util {
-    public static Map<String, String> getOperatorByNodeAddress(String baseCurrencyNetwork) {
-        Map<String, String> map = new HashMap<>();
+    //todo use from Utilities once merged.
+    public static ExecutorService newCachedThreadPool(int maximumPoolSize) {
+        return new ThreadPoolExecutor(0, maximumPoolSize,
+                60, TimeUnit.SECONDS,
+                new SynchronousQueue<>());
+    }
+
+    public static Set<String> getSeedNodeAddresses(String baseCurrencyNetwork) {
+        Set<String> addresses = new HashSet<>();
         String fileName = baseCurrencyNetwork.toLowerCase();
         DefaultSeedNodeRepository.readSeedNodePropertyFile(fileName)
                 .ifPresent(bufferedReader -> {
                     bufferedReader.lines().forEach(line -> {
                         if (!line.startsWith("#")) {
                             String[] strings = line.split(" \\(@");
-                            String node = strings.length > 0 ? strings[0] : "n/a";
-                            String operator = strings.length > 1 ? strings[1].replace(")", "") : "n/a";
-                            map.put(node, operator);
+                            if (strings.length > 0) {
+                                addresses.add(strings[0]);
+                            }
                         }
                     });
                 });
-        return map;
+        return addresses;
     }
 
-    public static String getNodeId(List<ReportingItem> reportingItems, Map<String, String> seedNodeOperatorByAddress) {
-        return reportingItems.stream()
-                .filter(e -> e.getPath().equals("node.address"))
-                .filter(e -> e instanceof StringValueItem)
-                .map(e -> ((StringValueItem) e).getValue())
-                .map(address -> mapAddressToId(address, seedNodeOperatorByAddress))
-                .findAny()
-                .orElse("Undefined");
-    }
-
-    public static String mapAddressToId(String address, Map<String, String> seedNodeOperatorByAddress) {
-        return seedNodeOperatorByAddress.get(address) + "@" + address.replace(".onion:8000", "");
+    public static String cleanAddress(String address) {
+        return address.replace(".onion:8000", "");
     }
 
     public static Optional<ReportingItem> find(List<ReportingItem> reportingItems, String path) {

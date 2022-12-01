@@ -25,19 +25,16 @@ import org.eclipse.jetty.util.ConcurrentHashSet;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-/**
- * Reports our findings to a graphite service.
- *
- * @author Florian Reimair
- */
 @Slf4j
 public class GraphiteReporter extends Reporter {
     private final LineWriter lineWriter;
     private final BatchWriter batchWriter;
-    private final Set<Metric> pending = new ConcurrentHashSet<>();
+    private final Set<Metrics> pending = new ConcurrentHashSet<>();
     private final int delayForBatchingSec;
     private final int minItemsForBatching;
+    private final int maxItemsForBatching;
     private Timer timer;
 
     public GraphiteReporter(Properties properties) {
@@ -46,10 +43,11 @@ public class GraphiteReporter extends Reporter {
         batchWriter = new BatchWriter(properties);
         delayForBatchingSec = Integer.parseInt(properties.getProperty("GraphiteReporter.delayForBatchingSec", "1"));
         minItemsForBatching = Integer.parseInt(properties.getProperty("GraphiteReporter.minItemsForBatching", "5"));
+        maxItemsForBatching = Integer.parseInt(properties.getProperty("GraphiteReporter.maxItemsForBatching", "1000"));
     }
 
-    public void report(Metric metric) {
-        pending.add(metric);
+    public void report(Metrics metrics) {
+        pending.add(metrics);
 
         if (timer == null) {
             // We wait a bit if more items arrive, so we can batch them
@@ -58,23 +56,29 @@ public class GraphiteReporter extends Reporter {
     }
 
     @Override
-    public void report(Set<Metric> metrics) {
+    public void report(Set<Metrics> metrics) {
         pending.addAll(metrics);
 
         sendPending();
     }
 
     private void sendPending() {
-        Set<Metric> clone = new HashSet<>(pending);
-        pending.clear();
-        if (clone.size() >= minItemsForBatching) {
-            batchWriter.report(clone);
+        Set<Metrics> batch = pending.stream().limit(maxItemsForBatching).collect(Collectors.toSet());
+        Set<Metrics> candidates = new HashSet<>(batch);
+        pending.removeAll(batch);
+
+        if (candidates.size() >= minItemsForBatching) {
+           batchWriter.report(candidates);
         } else {
-            clone.forEach(lineWriter::report);
+            candidates.forEach(lineWriter::report);
         }
         if (timer != null) {
             timer.stop();
             timer = null;
+        }
+
+        if (!pending.isEmpty()) {
+            timer = UserThread.runAfter(this::sendPending, delayForBatchingSec);
         }
     }
 
@@ -82,6 +86,7 @@ public class GraphiteReporter extends Reporter {
     public void shutDown() {
         if (timer != null) {
             timer.stop();
+            timer = null;
         }
     }
 }

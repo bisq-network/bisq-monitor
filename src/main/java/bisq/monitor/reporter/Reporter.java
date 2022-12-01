@@ -17,32 +17,24 @@
 
 package bisq.monitor.reporter;
 
-import bisq.monitor.monitor.utils.Configurable;
-
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Reports findings to a specific service/file/place using the proper means to
- * do so.
- *
- * @author Florian Reimair
- */
-public abstract class Reporter extends Configurable {
+public abstract class Reporter {
 
     protected Reporter() {
     }
 
-    abstract public void report(Metric metric);
+    abstract public void report(Metrics metrics);
 
-    abstract public void report(Set<Metric> metrics);
+    abstract public void report(Set<Metrics> metrics);
 
     public void shutDown() {
     }
 
     public void report(Map<String, String> map, String prefix) {
         map.entrySet().stream()
-                .map(entry -> new Metric(prefix, entry.getKey(), entry.getValue()))
+                .map(entry -> new Metrics(prefix, entry.getKey(), entry.getValue()))
                 .forEach(this::report);
     }
 }

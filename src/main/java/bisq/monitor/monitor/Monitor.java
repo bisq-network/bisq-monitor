@@ -17,40 +17,33 @@
 
 package bisq.monitor.monitor;
 
-import bisq.monitor.monitor.tasks.tornetwork.TorStartupTime;
+import bisq.monitor.monitor.tasks.*;
 import bisq.monitor.reporter.Reporter;
 import lombok.extern.slf4j.Slf4j;
-import org.berndpruenster.netlayer.tor.Tor;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * Monitor executable for the Bisq network.
- *
- * @author Florian Reimair
- */
 @Slf4j
 public class Monitor {
+    private final MonitorTaskRunner monitorTaskRunner = new MonitorTaskRunner();
 
-    public Monitor(File appDir, Properties properties, Reporter reporter) {
-        List<MonitorTask> monitorTasks = new ArrayList<>();
-        monitorTasks.add(new TorStartupTime(properties, appDir, reporter));
-        monitorTasks.forEach(MonitorTask::init);
+    public Monitor(Properties properties, Reporter reporter, File appDir) {
+        monitorTaskRunner.add(new TorStartupTime(properties, reporter, appDir));
+        monitorTaskRunner.add(new TorHiddenServiceStartupTime(properties, reporter, appDir));
+        monitorTaskRunner.add(new PriceNodeData(properties, reporter, appDir));
+        monitorTaskRunner.add(new SeedNodeRoundTripTime(properties, reporter, appDir, false));
+        monitorTaskRunner.add(new SeedNodeRoundTripTime(properties, reporter, appDir, true));
+        monitorTaskRunner.add(new TorConnectionTime(properties, reporter, appDir, false));
+        monitorTaskRunner.add(new TorConnectionTime(properties, reporter, appDir, true));
+    }
+
+    public void start() {
+        monitorTaskRunner.start();
     }
 
     public CompletableFuture<Void> shutDown() {
-        return CompletableFuture.runAsync(() -> {
-            MonitorTask.haltAllMetrics();
-
-            log.info("shutting down tor...");
-            Tor tor = Tor.getDefault();
-            if (tor != null) {
-                tor.shutdown();
-            }
-        });
+        return monitorTaskRunner.shutDown();
     }
 }
