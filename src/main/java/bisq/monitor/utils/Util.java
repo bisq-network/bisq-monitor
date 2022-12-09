@@ -15,7 +15,7 @@ package bisq.monitor.utils;/*
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import bisq.core.monitor.IntegerValueItem;
+import bisq.core.monitor.LongValueItem;
 import bisq.core.monitor.ReportingItem;
 import bisq.core.monitor.StringValueItem;
 import bisq.core.network.p2p.seed.DefaultSeedNodeRepository;
@@ -71,10 +71,10 @@ public class Util {
                 .map(StringValueItem::getValue);
     }
 
-    public static Optional<Integer> findIntegerValue(List<ReportingItem> reportingItems, String path) {
+    public static Optional<Long> findLongValue(List<ReportingItem> reportingItems, String path) {
         return find(reportingItems, path)
-                .filter(e -> e instanceof IntegerValueItem)
-                .map(e -> (IntegerValueItem) e)
-                .map(IntegerValueItem::getValue);
+                .filter(e -> e instanceof LongValueItem)
+                .map(e -> (LongValueItem) e)
+                .map(LongValueItem::getValue);
     }
 }

@@ -38,7 +38,7 @@ public class NodeLoadHandler extends ReportingHandler {
         super.report(reportingItems, "node", Set.of("address", "version", "commitHash", "jvmStartTime"));
         String address = Util.cleanAddress(reportingItems.getAddress());
         String path = "seedNodes." + address + ".seedReport.node.";
-        Util.findIntegerValue(reportingItems, "node.jvmStartTimeInSec")
+        Util.findLongValue(reportingItems, "node.jvmStartTimeInSec")
                 .ifPresent(jvmStartTime -> {
                     long running = System.currentTimeMillis() / 1000 - jvmStartTime;
                     sendReport(new Metrics(path + "jvmRunningInSec", running));

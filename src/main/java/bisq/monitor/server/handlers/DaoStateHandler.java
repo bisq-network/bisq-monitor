@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 public class DaoStateHandler extends ReportingHandler {
-    private final Map<Tuple2<Integer, Integer>, Map<String, Map<String, Map<String, Metrics>>>> map = new ConcurrentHashMap<>();
+    private final Map<Tuple2<Long, Long>, Map<String, Map<String, Map<String, Metrics>>>> map = new ConcurrentHashMap<>();
 
     public DaoStateHandler(Reporter reporter) {
         super(reporter);
@@ -41,8 +41,8 @@ public class DaoStateHandler extends ReportingHandler {
         super.report(reportingItems, "dao", Set.of("daoStateChainHeight", "blockTimeIsSec", "numBsqBlocks",
                 "daoStateHash", "proposalHash", "blindVoteHash"));
         try {
-            int height = Util.findIntegerValue(reportingItems, "dao.daoStateChainHeight").orElseThrow();
-            int blockTimeIsSec = Util.findIntegerValue(reportingItems, "dao.blockTimeIsSec").orElseThrow();
+            long height = Util.findLongValue(reportingItems, "dao.daoStateChainHeight").orElseThrow();
+            long blockTimeIsSec = Util.findLongValue(reportingItems, "dao.blockTimeIsSec").orElseThrow();
             pruneMap(map, height);
             String address = Util.cleanAddress(reportingItems.getAddress());
             String daoStateHash = Util.findStringValue(reportingItems, "dao.daoStateHash").orElseThrow();
@@ -62,13 +62,13 @@ public class DaoStateHandler extends ReportingHandler {
         }
     }
 
-    private static void fillHashValue(Map<Tuple2<Integer, Integer>, Map<String, Map<String, Map<String, Metrics>>>> map,
+    private static void fillHashValue(Map<Tuple2<Long, Long>, Map<String, Map<String, Map<String, Metrics>>>> map,
                                       String nodeId,
-                                      int height,
-                                      int blockTimeIsSec,
+                                      long height,
+                                      long blockTimeIsSec,
                                       String hashType,
                                       String hashValue) {
-        Tuple2<Integer, Integer> blockHeightTuple = new Tuple2<>(height, blockTimeIsSec);
+        Tuple2<Long, Long> blockHeightTuple = new Tuple2<>(height, blockTimeIsSec);
         map.putIfAbsent(blockHeightTuple, new HashMap<>());
         Map<String, Map<String, Map<String, Metrics>>> mapByHashType = map.get(blockHeightTuple);
         mapByHashType.putIfAbsent(hashType, new HashMap<>());
@@ -78,10 +78,10 @@ public class DaoStateHandler extends ReportingHandler {
         metricItemByNodeId.putIfAbsent(nodeId, null);
     }
 
-    private static Set<Metrics> getMetricItems(Map<Tuple2<Integer, Integer>, Map<String, Map<String, Map<String, Metrics>>>> map) {
+    private static Set<Metrics> getMetricItems(Map<Tuple2<Long, Long>, Map<String, Map<String, Map<String, Metrics>>>> map) {
         Set<Metrics> metrics = new HashSet<>();
         map.forEach((blockHeightTuple, mapByHashType) -> {
-            int blockTimeIsSec = blockHeightTuple.second;
+            long blockTimeIsSec = blockHeightTuple.second;
             mapByHashType.forEach((hashType, byHashValue) -> {
                 Comparator<Map.Entry<String, Map<String, Metrics>>> entryComparator = Comparator.comparing(e -> e.getValue().size());
                 List<String> rankedHashBuckets = byHashValue.entrySet().stream()
@@ -118,8 +118,8 @@ public class DaoStateHandler extends ReportingHandler {
         return metrics;
     }
 
-    private void pruneMap(Map<Tuple2<Integer, Integer>, Map<String, Map<String, Map<String, Metrics>>>> map, int height) {
-        int minHeight = height - 2;
+    private void pruneMap(Map<Tuple2<Long, Long>, Map<String, Map<String, Map<String, Metrics>>>> map, long height) {
+        long minHeight = height - 2;
         var pruned = map.entrySet().stream()
                 .filter(e -> e.getKey().first > minHeight)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));

@@ -18,7 +18,7 @@
 package bisq.monitor.server.handlers;
 
 import bisq.core.monitor.DoubleValueItem;
-import bisq.core.monitor.IntegerValueItem;
+import bisq.core.monitor.LongValueItem;
 import bisq.core.monitor.ReportingItems;
 import bisq.core.monitor.StringValueItem;
 import bisq.monitor.reporter.Metrics;
@@ -51,8 +51,8 @@ public abstract class ReportingHandler {
                 .filter(item -> !excludedKeys.contains(item.getKey()))
                 .map(item -> {
                     String path = "seedNodes." + address + ".seedReport." + item.getPath();
-                    if (item instanceof IntegerValueItem) {
-                        return new Metrics(path, ((IntegerValueItem) item).getValue());
+                    if (item instanceof LongValueItem) {
+                        return new Metrics(path, ((LongValueItem) item).getValue());
                     } else if (item instanceof DoubleValueItem) {
                         return new Metrics(path, ((DoubleValueItem) item).getValue());
                     }
