@@ -15,10 +15,10 @@ package bisq.monitor.utils;/*
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import bisq.core.monitor.LongValueItem;
-import bisq.core.monitor.ReportingItem;
-import bisq.core.monitor.StringValueItem;
 import bisq.core.network.p2p.seed.DefaultSeedNodeRepository;
+import bisq.seednode.reporting.LongValueReportingItem;
+import bisq.seednode.reporting.ReportingItem;
+import bisq.seednode.reporting.StringValueReportingItem;
 
 import java.util.HashSet;
 import java.util.List;
@@ -66,15 +66,15 @@ public class Util {
 
     public static Optional<String> findStringValue(List<ReportingItem> reportingItems, String path) {
         return find(reportingItems, path)
-                .filter(e -> e instanceof StringValueItem)
-                .map(e -> (StringValueItem) e)
-                .map(StringValueItem::getValue);
+                .filter(e -> e instanceof StringValueReportingItem)
+                .map(e -> (StringValueReportingItem) e)
+                .map(StringValueReportingItem::getValue);
     }
 
     public static Optional<Long> findLongValue(List<ReportingItem> reportingItems, String path) {
         return find(reportingItems, path)
-                .filter(e -> e instanceof LongValueItem)
-                .map(e -> (LongValueItem) e)
-                .map(LongValueItem::getValue);
+                .filter(e -> e instanceof LongValueReportingItem)
+                .map(e -> (LongValueReportingItem) e)
+                .map(LongValueReportingItem::getValue);
     }
 }

@@ -17,10 +17,10 @@
 
 package bisq.monitor.server;
 
-import bisq.core.monitor.ReportingItems;
 import bisq.monitor.reporter.Reporter;
 import bisq.monitor.server.handlers.*;
 import bisq.monitor.utils.Util;
+import bisq.seednode.reporting.ReportingItems;
 import lombok.extern.slf4j.Slf4j;
 import spark.Request;
 import spark.Response;

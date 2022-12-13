@@ -17,13 +17,13 @@
 
 package bisq.monitor.server.handlers;
 
-import bisq.core.monitor.DoubleValueItem;
-import bisq.core.monitor.LongValueItem;
-import bisq.core.monitor.ReportingItems;
-import bisq.core.monitor.StringValueItem;
 import bisq.monitor.reporter.Metrics;
 import bisq.monitor.reporter.Reporter;
 import bisq.monitor.utils.Util;
+import bisq.seednode.reporting.DoubleValueReportingItem;
+import bisq.seednode.reporting.LongValueReportingItem;
+import bisq.seednode.reporting.ReportingItems;
+import bisq.seednode.reporting.StringValueReportingItem;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashSet;
@@ -51,13 +51,13 @@ public abstract class ReportingHandler {
                 .filter(item -> !excludedKeys.contains(item.getKey()))
                 .map(item -> {
                     String path = "seedNodes." + address + ".seedReport." + item.getPath();
-                    if (item instanceof LongValueItem) {
-                        return new Metrics(path, ((LongValueItem) item).getValue());
-                    } else if (item instanceof DoubleValueItem) {
-                        return new Metrics(path, ((DoubleValueItem) item).getValue());
+                    if (item instanceof LongValueReportingItem) {
+                        return new Metrics(path, ((LongValueReportingItem) item).getValue());
+                    } else if (item instanceof DoubleValueReportingItem) {
+                        return new Metrics(path, ((DoubleValueReportingItem) item).getValue());
                     }
-                    if (item instanceof StringValueItem) {
-                        return new Metrics(path, ((StringValueItem) item).getValue());
+                    if (item instanceof StringValueReportingItem) {
+                        return new Metrics(path, ((StringValueReportingItem) item).getValue());
                     } else {
                         return null;
                     }
