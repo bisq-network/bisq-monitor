@@ -43,6 +43,7 @@ dependencies {
     implementation 'bisq:core'
     implementation 'bisq:proto'
     implementation 'bisq:p2p'
+    implementation 'bisq:seednode'
 
     implementation libs.guava
     implementation libs.guice
