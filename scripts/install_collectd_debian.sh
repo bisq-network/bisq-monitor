@@ -11,7 +11,7 @@ BISQ_MONITOR_REPO_TAG=main
 ROOT_USER=root
 ROOT_GROUP=root
 ROOT_HOME=~root
-ROOT_PKG=(nginx collectd openssl)
+ROOT_PKG=(curl patch nginx collectd openssl)
 
 SYSTEMD_ENV_HOME=/etc/default
 
@@ -55,6 +55,38 @@ echo "[*] Updating systemd daemon configuration"
 sudo -H -i -u "${ROOT_USER}" systemctl daemon-reload
 sudo -H -i -u "${ROOT_USER}" systemctl enable nginx.service
 sudo -H -i -u "${ROOT_USER}" systemctl enable collectd.service
+
+echo "[*] Symlink libjvm.so for collectd to work"
+ln -s /usr/lib/jvm/openjdk-11.0.2/lib/server/libjvm.so /lib/x86_64-linux-gnu/libjvm.so || true
+
+echo "[*] Add monitor parameter to bisq seednode service"
+( patch -u /etc/default/bisq.env || true ) <<EOF
+--- bisq.env.old        2022-12-07 12:07:14.481493232 +0000
++++ /etc/default/bisq.env       2022-12-07 12:13:58.370281467 +0000
+@@ -40,3 +40,6 @@
+
+ # set to true for BSQ markets
+ BISQ_DUMP_STATISTICS=false
++
++# Reporting Server
++BISQ_REPORTINGSERVERURL=http://localhost:13003
+EOF
+
+( patch -u /etc/systemd/system/bisq.service || true ) <<EOF
+--- bisq.service.old    2022-12-07 12:07:00.653481418 +0000
++++ /etc/systemd/system/bisq.service    2022-12-07 12:07:56.417573388 +0000
+@@ -27,6 +27,7 @@
+           --rpcPassword=\${BITCOIN_RPC_PASS} \\
+           --dumpBlockchainData=\${BISQ_DUMP_BLOCKCHAIN} \\
+           --dumpStatistics=\${BISQ_DUMP_STATISTICS} \\
++          --seedNodeReportingServerUrl=\${BISQ_REPORTINGSERVERURL} \\
+           --torControlPort=9051
+
+ ExecStop=/bin/kill \${MAINPID}
+EOF
+
+sudo -H -i -u "${ROOT_USER}" systemctl daemon-reload
+
 
 echo "[*] Restarting services"
 set +e
