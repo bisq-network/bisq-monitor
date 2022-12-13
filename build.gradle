@@ -35,6 +35,8 @@ javafx {
 
 configurations.all {
     exclude group: 'io.grpc'
+    distZip.enabled = false
+    distTar.enabled = false
 }
 
 dependencies {
