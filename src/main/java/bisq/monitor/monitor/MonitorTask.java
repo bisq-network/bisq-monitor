@@ -17,6 +17,7 @@
 
 package bisq.monitor.monitor;
 
+import bisq.common.UserThread;
 import bisq.monitor.reporter.Reporter;
 import bisq.network.p2p.NodeAddress;
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
@@ -110,8 +111,21 @@ public abstract class MonitorTask {
         try {
             Tor.setDefault(new NativeTor(torDir, null, null));
         } catch (Throwable e) {
-            log.error("Could not create tor. ", e);
-            torDir.delete();
+            log.error("Could not create tor. We delete the tor dir. ", e);
+            boolean deleted = torDir.delete();
+            if (!deleted) {
+                log.error("Deleting tor dir {} failed. We try to create tor again after 2 seconds. " +
+                        "If it fails again we shut down.", torDir.getAbsolutePath());
+                UserThread.runAfter(() -> {
+                    torDir.delete();
+                    try {
+                        Tor.setDefault(new NativeTor(torDir, null, null));
+                    } catch (Throwable e2) {
+                        log.error("Cannot create tor. We shut down. ", e2);
+                        MonitorMain.shutDown();
+                    }
+                }, 2);
+            }
             throw new RuntimeException(e);
         }
     }

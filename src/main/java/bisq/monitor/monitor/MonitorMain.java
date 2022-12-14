@@ -88,6 +88,7 @@ public class MonitorMain {
         String logPath = Paths.get(appDir.getPath(), "bisq").toString();
         Log.setup(logPath);
         Log.setLevel(Level.INFO);
+        log.info("Log file at: {}.log", logPath);
         AsciiLogo.showAsciiLogo();
 
         Config config = new Config();

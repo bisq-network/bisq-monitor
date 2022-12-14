@@ -79,6 +79,7 @@ public class ServerMain {
         String logPath = Paths.get(appDir.getPath(), "bisq").toString();
         Log.setup(logPath);
         Log.setLevel(Level.INFO);
+        log.info("Log file at: {}.log", logPath);
         AsciiLogo.showAsciiLogo();
 
         ThreadFactory threadFactory = new ThreadFactoryBuilder()
