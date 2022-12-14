@@ -53,10 +53,7 @@ public class NodeLoadHandler extends ReportingHandler {
         });
         Util.findStringValue(reportingItems, "node.commitHash").ifPresent(commitHash -> {
             try {
-                String substring = commitHash.substring(0, 7);
-                byte[] decode = Hex.decode(substring);
-                int commitHashAsInt = new BigInteger(decode).intValue();
-                log.info("full commitHash={}, substring={}, commitHashAsInt={} hex={}", commitHash, substring, commitHashAsInt, Hex.encode(BigInteger.valueOf(commitHashAsInt).toByteArray()));
+                int commitHashAsInt = new BigInteger(Hex.decode(commitHash)).intValue();
                 sendReport(new Metrics(path + "commitHashAsInt", commitHashAsInt));
             } catch (Throwable e) {
                 log.error("Could not convert commit hash. commitHash={}; error={}", commitHash, e);
