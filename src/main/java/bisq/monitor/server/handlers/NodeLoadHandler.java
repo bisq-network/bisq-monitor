@@ -53,8 +53,11 @@ public class NodeLoadHandler extends ReportingHandler {
         });
         Util.findStringValue(reportingItems, "node.commitHash").ifPresent(commitHash -> {
             try {
-                int commitHashAsInt = new BigInteger(Hex.decode(commitHash)).intValue();
-                sendReport(new Metrics(path + "commitHashAsInt", commitHashAsInt));
+                // Use left 4 bytes
+                int commitHashAsInt = new BigInteger(Hex.decode(commitHash.substring(0, 8))).intValue();
+                // Need unsigned int for grafana
+                long unsignedLong = Integer.toUnsignedLong(commitHashAsInt);
+                sendReport(new Metrics(path + "commitHash", unsignedLong));
             } catch (Throwable e) {
                 log.error("Could not convert commit hash. commitHash={}; error={}", commitHash, e);
             }
