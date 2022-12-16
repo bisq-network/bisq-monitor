@@ -122,7 +122,7 @@ public abstract class MonitorTask {
                         Tor.setDefault(new NativeTor(torDir, null, null));
                     } catch (Throwable e2) {
                         log.error("Cannot create tor. We shut down. ", e2);
-                        MonitorMain.shutDown();
+                        MonitorMain.shutDown(1);
                     }
                 }, 2);
             }

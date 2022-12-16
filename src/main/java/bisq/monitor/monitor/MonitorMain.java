@@ -108,6 +108,10 @@ public class MonitorMain {
     }
 
     public static void shutDown() {
+        shutDown(0);
+    }
+
+    public static void shutDown(int status) {
         log.info("ShutDown started");
         monitor.shutDown()
                 .whenComplete((__, throwable) -> {
@@ -116,7 +120,7 @@ public class MonitorMain {
                     }
                     executor.shutdownNow();
                     log.info("ShutDown completed");
-                    System.exit(0);
+                    System.exit(status);
                 });
     }
 
