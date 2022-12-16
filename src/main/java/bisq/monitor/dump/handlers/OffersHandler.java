@@ -26,6 +26,7 @@ import bisq.monitor.reporter.Metrics;
 import bisq.monitor.reporter.Reporter;
 import bisq.network.p2p.BootstrapListener;
 import bisq.network.p2p.P2PService;
+import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.bitcoinj.core.Coin;
@@ -37,6 +38,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -44,6 +46,22 @@ import java.util.concurrent.atomic.AtomicLong;
 @Slf4j
 public class OffersHandler {
     private static final String OFFERS_PATH = "offers";
+
+    private enum Age {
+        YEAR(TimeUnit.DAYS.toMillis(365)),
+        MONTH(TimeUnit.DAYS.toMillis(30)),
+        WEEK(TimeUnit.DAYS.toMillis(7)),
+        DAY(TimeUnit.DAYS.toMillis(1)),
+        RECENT(0);
+
+        @Getter
+        private final long age;
+
+        Age(long age) {
+            this.age = age;
+        }
+    }
+
     @Setter
     private static Optional<Properties> monitorProperties = Optional.empty();
 
@@ -101,19 +119,43 @@ public class OffersHandler {
 
     private void run() {
         AtomicLong totalAmount = new AtomicLong();
-        Map<String, AtomicInteger> numOffersByVersion = new HashMap<>();
         long now = System.currentTimeMillis();
+        Map<String, AtomicInteger> numOffersByVersion = new HashMap<>();
+        Map<Age, AtomicInteger> numOffersByAge = new HashMap<>();
+        numOffersByAge.put(Age.YEAR, new AtomicInteger());
+        numOffersByAge.put(Age.MONTH, new AtomicInteger());
+        numOffersByAge.put(Age.WEEK, new AtomicInteger());
+        numOffersByAge.put(Age.DAY, new AtomicInteger());
+        numOffersByAge.put(Age.RECENT, new AtomicInteger());
+
         offerBookService.getOffers().forEach(offer -> {
             totalAmount.addAndGet(offer.getAmount().getValue());
             numOffersByVersion.putIfAbsent(offer.getVersionNr(), new AtomicInteger(0));
             numOffersByVersion.get(offer.getVersionNr()).incrementAndGet();
-            reporter.report(new Metrics(OFFERS_PATH + ".offerAge." + offer.getShortId(), now - offer.getDate().getTime()));
+            numOffersByAge.get(getAgeCategory(now, offer.getDate().getTime())).incrementAndGet();
         });
+
+        numOffersByAge.forEach((key, value) -> reporter.report(new Metrics(OFFERS_PATH + ".offerAge." + key.name().toLowerCase(), value.get())));
 
         String value = new MainNetParams().getMonetaryFormat().noCode().format(Coin.valueOf(totalAmount.get())).toString();
         reporter.report(new Metrics(OFFERS_PATH + ".totalAmount", value));
         numOffersByVersion.forEach((version, count) ->
                 reporter.report(new Metrics(OFFERS_PATH + ".numOffersByVersion." + version.replace(".", "_"), count.get())));
+    }
+
+    private Age getAgeCategory(long now, long offerCreationDate) {
+        long age = now - offerCreationDate;
+        if (age > Age.YEAR.getAge()) {
+            return Age.YEAR;
+        } else if (age > Age.MONTH.getAge()) {
+            return Age.MONTH;
+        } else if (age > Age.WEEK.getAge()) {
+            return Age.WEEK;
+        } else if (age > Age.DAY.getAge()) {
+            return Age.DAY;
+        } else {
+            return Age.RECENT;
+        }
     }
 
     public void shutDown() {
