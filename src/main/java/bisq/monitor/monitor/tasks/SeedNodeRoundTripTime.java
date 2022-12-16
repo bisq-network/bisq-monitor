@@ -36,6 +36,7 @@ import java.net.Socket;
 import java.time.Clock;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -46,7 +47,7 @@ import java.util.concurrent.Executors;
 public class SeedNodeRoundTripTime extends MonitorTask {
     private final Map<String, Long> startTimeByNonce = new HashMap<>();
     private final CoreNetworkProtoResolver networkProtoResolver;
-    private final List<CompletableFuture<NetworkEnvelope>> allFutures = new ArrayList<>();
+    private final List<CompletableFuture<NetworkEnvelope>> allFutures = new CopyOnWriteArrayList<>();
     private final Set<String> addresses;
     private final ExecutorService executor;
 
@@ -62,6 +63,7 @@ public class SeedNodeRoundTripTime extends MonitorTask {
     public void run() {
         try {
             maybeCreateTor();
+            allFutures.clear();
             addresses.forEach(address -> {
                 log.info("Send request to '{}'", address);
                 NodeAddress nodeAddress = new NodeAddress(address);
@@ -105,13 +107,12 @@ public class SeedNodeRoundTripTime extends MonitorTask {
             // execute next task.
             if (!runSerial) {
                 CompletableFutureUtil.allOf(allFutures).join();
+                allFutures.clear();
             }
         } catch (Throwable e) {
             if (!shutDownInProgress) {
                 log.error("Error at SeedNodeRoundTripTime.run", e);
             }
-        } finally {
-            allFutures.clear();
         }
     }
 
@@ -119,7 +120,7 @@ public class SeedNodeRoundTripTime extends MonitorTask {
     public CompletableFuture<Void> shutDown() {
         shutDownInProgress = true;
         return CompletableFuture.runAsync(() -> {
-            allFutures.forEach(future -> future.cancel(true));
+            new ArrayList<>(allFutures).forEach(future -> future.cancel(true));
             executor.shutdownNow();
         }, Executors.newSingleThreadExecutor());
     }
