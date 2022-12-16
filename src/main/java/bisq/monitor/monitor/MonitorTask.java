@@ -119,6 +119,10 @@ public abstract class MonitorTask {
                 UserThread.runAfter(() -> {
                     torDir.delete();
                     try {
+                        if (Tor.getDefault() != null) {
+                            log.error("Tor.getDefault() would be expected to be null");
+                            Tor.getDefault().shutdown();
+                        }
                         Tor.setDefault(new NativeTor(torDir, null, null));
                     } catch (Throwable e2) {
                         log.error("Cannot create tor. We shut down. ", e2);
