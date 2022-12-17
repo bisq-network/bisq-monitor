@@ -26,8 +26,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 /**
  * We execute all tasks serial. Once all tasks are completed we check if we have passed the min. interval time and if
@@ -87,26 +85,15 @@ public class MonitorTaskRunner {
     public CompletableFuture<Void> shutDown() {
         stopped = true;
         Set<CompletableFuture<Void>> futures = new HashSet<>();
-        monitorTasks.forEach(task -> {
-            try {
-                futures.add(task.shutDown());
-            } catch (Throwable t) {
-                log.error("Error at shutDown task {}. Error: {}", task.getClass().getSimpleName(), t.getMessage());
-            }
-        });
-        CompletableFuture<Void> future = new CompletableFuture<>();
+        monitorTasks.forEach(task -> futures.add(task.shutDown()));
         return CompletableFutureUtil.allOf(futures)
-                .thenRunAsync(() -> {
-                    try {
-                        if (Tor.getDefault() != null) {
-                            log.info("Shut down tor");
-                            Tor.getDefault().shutdown();
-                            log.info("Tor shutdown completed");
-                            future.complete(null);
-                        }
-                    } catch (Throwable ignore) {
+                .handle((__, throwable) -> {
+                    if (Tor.getDefault() != null) {
+                        log.info("Shut down tor");
+                        Tor.getDefault().shutdown();
+                        log.info("Tor shutdown completed");
                     }
-                }, Executors.newSingleThreadExecutor())
-                .orTimeout(5, TimeUnit.SECONDS);
+                    return null;
+                });
     }
 }

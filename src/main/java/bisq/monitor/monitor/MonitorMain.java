@@ -39,10 +39,7 @@ import sun.misc.Signal;
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.Properties;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.*;
 
 @Slf4j
 public class MonitorMain {
@@ -114,6 +111,7 @@ public class MonitorMain {
     public static void shutDown(int status) {
         log.info("ShutDown started");
         monitor.shutDown()
+                .orTimeout(5, TimeUnit.SECONDS)
                 .whenComplete((__, throwable) -> {
                     if (throwable != null) {
                         log.info("Error at shutdown.", throwable);
