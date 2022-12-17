@@ -62,7 +62,7 @@ public abstract class ExecutableForDataDump extends BisqExecutable {
         // Pin that as it is used in PaymentMethods and verification in TradeStatistics
         tradeLimits = injector.getInstance(TradeLimits.class);
     }
-    
+
 
     @Override
     public void gracefulShutDown(ResultHandler resultHandler) {
@@ -84,8 +84,8 @@ public abstract class ExecutableForDataDump extends BisqExecutable {
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
-                log.warn("Graceful shutdown not completed in 5 sec. We trigger our timeout handler.");
-                System.exit(EXIT_FAILURE);
+                log.warn("Graceful shutdown not completed in 5 sec.");
+                exitWithFailure();
             }
         }, 5000);
 
@@ -102,8 +102,14 @@ public abstract class ExecutableForDataDump extends BisqExecutable {
             });
         } catch (Throwable t) {
             log.error("App shutdown failed with an exception", t);
-            System.exit(EXIT_FAILURE);
+            exitWithFailure();
         }
+    }
+
+    private void exitWithFailure() {
+        // This method does not wait for shutdown hooks. We have a 1 min. timeout at the Tor library which 
+        // blocks the shutdown when System.exit() is used 
+        Runtime.getRuntime().halt(EXIT_FAILURE);
     }
 
     @SuppressWarnings("InfiniteLoopStatement")

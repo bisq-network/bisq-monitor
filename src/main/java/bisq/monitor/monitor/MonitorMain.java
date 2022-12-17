@@ -113,12 +113,16 @@ public class MonitorMain {
         monitor.shutDown()
                 .orTimeout(5, TimeUnit.SECONDS)
                 .whenComplete((__, throwable) -> {
+                    executor.shutdownNow();
                     if (throwable != null) {
                         log.info("Error at shutdown.", throwable);
+                        // This method does not wait for shutdown hooks. We have a 1 min. timeout at the Tor library which 
+                        // blocks the shutdown when System.exit() is used 
+                        Runtime.getRuntime().halt(1);
+                    } else {
+                        log.info("ShutDown completed");
+                        System.exit(status);
                     }
-                    executor.shutdownNow();
-                    log.info("ShutDown completed");
-                    System.exit(status);
                 });
     }
 
