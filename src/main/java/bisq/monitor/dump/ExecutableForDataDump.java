@@ -84,10 +84,10 @@ public abstract class ExecutableForDataDump extends BisqExecutable {
         new Timer().schedule(new TimerTask() {
             @Override
             public void run() {
-                log.warn("Graceful shutdown not completed in 10 sec. We trigger our timeout handler.");
-                flushAndExit(resultHandler, EXIT_SUCCESS);
+                log.warn("Graceful shutdown not completed in 5 sec. We trigger our timeout handler.");
+                System.exit(EXIT_FAILURE);
             }
-        }, 10000);
+        }, 5000);
 
         try {
             injector.getInstance(ClockWatcher.class).shutDown();
@@ -102,7 +102,7 @@ public abstract class ExecutableForDataDump extends BisqExecutable {
             });
         } catch (Throwable t) {
             log.error("App shutdown failed with an exception", t);
-            flushAndExit(resultHandler, EXIT_FAILURE);
+            System.exit(EXIT_FAILURE);
         }
     }
 
