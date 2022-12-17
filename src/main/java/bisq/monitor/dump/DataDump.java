@@ -65,10 +65,8 @@ public class DataDump {
     }
 
     public void shutDown() {
-        TradeStatisticsHandler tradeStatisticsHandler = injector.getInstance(TradeStatisticsHandler.class);
-        OffersHandler offersHandler = injector.getInstance(OffersHandler.class);
-        tradeStatisticsHandler.shutDown();
-        offersHandler.shutDown();
+        injector.getInstance(TradeStatisticsHandler.class).shutDown();
+        injector.getInstance(OffersHandler.class).shutDown();
 
     }
 }

@@ -20,8 +20,7 @@ package bisq.monitor.dump;
 import bisq.common.UserThread;
 import bisq.common.app.AppModule;
 import bisq.common.app.Version;
-import bisq.common.setup.GracefulShutDownHandler;
-import bisq.core.app.misc.ExecutableForAppWithP2p;
+import bisq.common.handlers.ResultHandler;
 import bisq.core.app.misc.ModuleForAppWithP2p;
 import bisq.monitor.dump.handlers.OffersHandler;
 import bisq.monitor.dump.handlers.TradeStatisticsHandler;
@@ -32,7 +31,7 @@ import java.util.Optional;
 import java.util.Properties;
 
 @Slf4j
-public class DataDumpMain extends ExecutableForAppWithP2p {
+public class DataDumpMain extends ExecutableForDataDump {
     private DataDump dataDump;
 
     public DataDumpMain(String appDir) {
@@ -104,14 +103,12 @@ public class DataDumpMain extends ExecutableForAppWithP2p {
 
     @Override
     protected void startApplication() {
-        super.startApplication();
-
         dataDump.startApplication();
     }
 
     @Override
-    protected void shutDown(GracefulShutDownHandler gracefulShutDownHandler) {
-        super.shutDown(gracefulShutDownHandler);
+    public void gracefulShutDown(ResultHandler resultHandler) {
         dataDump.shutDown();
+        super.gracefulShutDown(resultHandler);
     }
 }
