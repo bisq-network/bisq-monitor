@@ -103,6 +103,7 @@ public class DataDumpMain extends ExecutableForDataDump {
 
     @Override
     protected void startApplication() {
+        super.startApplication();
         dataDump.startApplication();
     }
 

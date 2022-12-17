@@ -59,7 +59,7 @@ public class NodeLoadHandler extends ReportingHandler {
                 long unsignedLong = Integer.toUnsignedLong(commitHashAsInt);
                 sendReport(new Metrics(path + "commitHash", unsignedLong));
             } catch (Throwable e) {
-                log.error("Could not convert commit hash. commitHash={}; error={}", commitHash, e);
+                log.error("Could not convert commit hash. commitHash={}; error={}", commitHash, e.toString());
             }
         });
     }
