@@ -23,6 +23,7 @@ import bisq.common.handlers.ResultHandler;
 import bisq.core.app.BisqExecutable;
 import bisq.core.dao.DaoSetup;
 import bisq.core.dao.node.full.RpcService;
+import bisq.core.payment.TradeLimits;
 import bisq.core.provider.price.PriceFeedService;
 import bisq.core.trade.statistics.TradeStatisticsManager;
 import bisq.network.p2p.P2PService;
@@ -36,6 +37,8 @@ import java.util.concurrent.ThreadFactory;
 
 @Slf4j
 public abstract class ExecutableForDataDump extends BisqExecutable {
+    private TradeLimits tradeLimits;
+
     public ExecutableForDataDump(String fullName, String scriptName, String appName, String version) {
         super(fullName, scriptName, appName, version);
     }
@@ -53,6 +56,13 @@ public abstract class ExecutableForDataDump extends BisqExecutable {
     public void onSetupComplete() {
         log.info("onSetupComplete");
     }
+
+    @Override
+    protected void startApplication() {
+        // Pin that as it is used in PaymentMethods and verification in TradeStatistics
+        tradeLimits = injector.getInstance(TradeLimits.class);
+    }
+    
 
     @Override
     public void gracefulShutDown(ResultHandler resultHandler) {
