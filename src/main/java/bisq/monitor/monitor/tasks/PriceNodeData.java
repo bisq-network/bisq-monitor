@@ -137,7 +137,7 @@ public class PriceNodeData extends MonitorTask {
                     String currencyCode = priceItem.get("currencyCode").getAsString();
                     if (!excluded.contains(currencyCode)) {
                         String price = String.format("%.12f", priceItem.get("price").getAsDouble());
-                        reporter.report(new Metrics(getBasePath(address) + ".price." + currencyCode, price));
+                        reporter.report(new Metrics(getBasePath(address) + "price." + currencyCode, price));
                     }
                 });
     }
