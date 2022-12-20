@@ -17,6 +17,7 @@
 
 package bisq.monitor.monitor;
 
+import bisq.common.util.Utilities;
 import bisq.monitor.monitor.tasks.*;
 import bisq.monitor.reporter.Reporter;
 import lombok.extern.slf4j.Slf4j;
@@ -28,15 +29,17 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 public class Monitor {
     private final MonitorTaskRunner monitorTaskRunner = new MonitorTaskRunner();
+    private final TorNode torNode;
 
     public Monitor(Properties properties, Reporter reporter, File appDir) {
-        monitorTaskRunner.add(new TorStartupTime(properties, reporter, appDir));
-        monitorTaskRunner.add(new TorHiddenServiceStartupTime(properties, reporter, appDir));
-        monitorTaskRunner.add(new PriceNodeData(properties, reporter, appDir));
-        monitorTaskRunner.add(new SeedNodeRoundTripTime(properties, reporter, appDir, false));
-        monitorTaskRunner.add(new SeedNodeRoundTripTime(properties, reporter, appDir, true));
-        monitorTaskRunner.add(new TorConnectionTime(properties, reporter, appDir, false));
-        monitorTaskRunner.add(new TorConnectionTime(properties, reporter, appDir, true));
+        torNode = new TorNode(properties, appDir);
+        monitorTaskRunner.add(new TorStartupTime(properties, reporter, torNode));
+        monitorTaskRunner.add(new TorHiddenServiceStartupTime(properties, reporter, torNode));
+        monitorTaskRunner.add(new PriceNodeData(properties, reporter, torNode));
+        monitorTaskRunner.add(new SeedNodeRoundTripTime(properties, reporter, torNode, false));
+        monitorTaskRunner.add(new SeedNodeRoundTripTime(properties, reporter, torNode, true));
+        monitorTaskRunner.add(new TorConnectionTime(properties, reporter, torNode, false));
+        monitorTaskRunner.add(new TorConnectionTime(properties, reporter, torNode, true));
     }
 
     public void start() {
@@ -44,6 +47,10 @@ public class Monitor {
     }
 
     public CompletableFuture<Void> shutDown() {
-        return monitorTaskRunner.shutDown();
+        return monitorTaskRunner.shutDown()
+                .handleAsync((__, throwable) -> {
+                    torNode.shutDown();
+                    return null;
+                }, Utilities.getSingleThreadExecutor("ShutdownTor"));
     }
 }

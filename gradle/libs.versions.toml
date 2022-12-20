@@ -13,6 +13,7 @@ netlayer-lib = { strictly = '0.7.4' }
 openjfx-plugin = { strictly = '0.0.12' }
 slf4j-lib = { strictly = '1.7.36' }
 spark-lib = { strictly = '2.5.2' }
+failsafe-lib = { strictly = '3.2.4' }
 
 # Referenced in subproject's build.gradle > dependencies block in the form 'implementation libs.guava'
 # Note: keys can contain dash (protobuf-java) but the dash is replaced by dot when referenced
@@ -28,6 +29,8 @@ netlayer-tor = { module = 'com.github.bisq-network.netlayer:tor', version.ref = 
 netlayer-tor-native = { module = 'com.github.bisq-network.netlayer:tor.native', version.ref = 'netlayer-lib' }
 slf4j-api = { module = 'org.slf4j:slf4j-api', version.ref = 'slf4j-lib' }
 spark-core = { module = 'com.sparkjava:spark-core', version.ref = 'spark-lib' }
+failsafe = { module = 'dev.failsafe:failsafe', version.ref = 'failsafe-lib' }
+
 
 [bundles]
 

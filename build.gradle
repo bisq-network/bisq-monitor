@@ -54,6 +54,8 @@ dependencies {
     compileOnly libs.lombok
     annotationProcessor libs.lombok
     implementation libs.slf4j.api
+    implementation libs.failsafe
+
 
     implementation "com.google.protobuf:protobuf-java:3.19.1"
     implementation libs.spark.core

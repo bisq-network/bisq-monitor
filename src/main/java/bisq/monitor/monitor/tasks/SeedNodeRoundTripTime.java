@@ -21,6 +21,7 @@ import bisq.common.proto.network.NetworkEnvelope;
 import bisq.common.util.CompletableFutureUtil;
 import bisq.core.proto.network.CoreNetworkProtoResolver;
 import bisq.monitor.monitor.MonitorTask;
+import bisq.monitor.monitor.TorNode;
 import bisq.monitor.reporter.Metrics;
 import bisq.monitor.reporter.Reporter;
 import bisq.monitor.utils.Util;
@@ -29,7 +30,6 @@ import bisq.network.p2p.peers.keepalive.messages.Ping;
 import bisq.network.p2p.peers.keepalive.messages.Pong;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
@@ -51,8 +51,8 @@ public class SeedNodeRoundTripTime extends MonitorTask {
     private final Set<String> addresses;
     private final ExecutorService executor;
 
-    public SeedNodeRoundTripTime(Properties properties, Reporter reporter, File appDir, boolean runSerial) {
-        super(properties, reporter, appDir, runSerial);
+    public SeedNodeRoundTripTime(Properties properties, Reporter reporter, TorNode torNode, boolean runSerial) {
+        super(properties, reporter, torNode, runSerial);
         addresses = Util.getSeedNodeAddresses(properties.getProperty("baseCurrencyNetwork"));
         networkProtoResolver = new CoreNetworkProtoResolver(Clock.systemDefaultZone());
 
@@ -62,7 +62,7 @@ public class SeedNodeRoundTripTime extends MonitorTask {
     @Override
     public void run() {
         try {
-            maybeCreateTor();
+            torNode.maybeCreateTor();
             allFutures.clear();
             addresses.forEach(address -> {
                 log.info("Send request to '{}'", address);
@@ -127,7 +127,7 @@ public class SeedNodeRoundTripTime extends MonitorTask {
 
     private CompletableFuture<NetworkEnvelope> sendMessage(NodeAddress nodeAddress, NetworkEnvelope request) {
         return CompletableFuture.supplyAsync(() -> {
-            try (Socket socket = getSocket(nodeAddress)) {
+            try (Socket socket = torNode.getSocket(nodeAddress)) {
                 // socket.setSoTimeout(SOCKET_TIMEOUT);
                 socket.setSoTimeout(30000);
                 OutputStream outputStream = socket.getOutputStream();

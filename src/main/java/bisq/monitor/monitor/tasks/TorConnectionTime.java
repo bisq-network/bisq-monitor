@@ -18,13 +18,13 @@
 package bisq.monitor.monitor.tasks;
 
 import bisq.monitor.monitor.MonitorTask;
+import bisq.monitor.monitor.TorNode;
 import bisq.monitor.reporter.Metrics;
 import bisq.monitor.reporter.Reporter;
 import bisq.monitor.utils.Util;
 import bisq.network.p2p.NodeAddress;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.List;
@@ -43,8 +43,8 @@ public class TorConnectionTime extends MonitorTask {
     private final boolean restartTor;
     private final ExecutorService executor;
 
-    public TorConnectionTime(Properties properties, Reporter reporter, File appDir, boolean restartTor) {
-        super(properties, reporter, appDir, true);
+    public TorConnectionTime(Properties properties, Reporter reporter, TorNode torNode, boolean restartTor) {
+        super(properties, reporter, torNode, true);
 
         this.restartTor = restartTor;
         addresses = List.of(properties.getProperty("Monitor.TorConnectionTime.hosts", "").split(","));
@@ -55,7 +55,7 @@ public class TorConnectionTime extends MonitorTask {
     public void run() {
         try {
             addresses.forEach(address -> {
-                maybeCreateTor();
+                torNode.maybeCreateTor();
                 log.info("Connect to '{}'", address);
                 NodeAddress nodeAddress = new NodeAddress(address);
                 try {
@@ -76,7 +76,7 @@ public class TorConnectionTime extends MonitorTask {
                 } catch (Throwable ignore) {
                 }
                 if (restartTor) {
-                    shutdownTor();
+                    torNode.shutDown();
                 }
             });
         } catch (Throwable ignore) {
@@ -92,7 +92,7 @@ public class TorConnectionTime extends MonitorTask {
     private CompletableFuture<Long> connect(NodeAddress nodeAddress) {
         return CompletableFuture.supplyAsync(() -> {
             long ts = System.currentTimeMillis();
-            try (Socket socket = getSocket(nodeAddress)) {
+            try (Socket socket = torNode.getSocket(nodeAddress)) {
                 log.info("Connection established to '{}'. socket={}", nodeAddress, socket);
                 return System.currentTimeMillis() - ts;
             } catch (IOException e) {

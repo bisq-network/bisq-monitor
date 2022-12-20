@@ -18,11 +18,11 @@
 package bisq.monitor.monitor.tasks;
 
 import bisq.monitor.monitor.MonitorTask;
+import bisq.monitor.monitor.TorNode;
 import bisq.monitor.reporter.Metrics;
 import bisq.monitor.reporter.Reporter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.File;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 
@@ -33,16 +33,16 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 public class TorStartupTime extends MonitorTask {
 
-    public TorStartupTime(Properties properties, Reporter reporter, File appDir) {
-        super(properties, reporter, appDir, true);
+    public TorStartupTime(Properties properties, Reporter reporter, TorNode torNode) {
+        super(properties, reporter, torNode, true);
     }
 
     @Override
     public void run() {
         try {
-            shutdownTor();
+            torNode.shutDown();
             long ts = System.currentTimeMillis();
-            maybeCreateTor();
+            torNode.maybeCreateTor();
             reporter.report(new Metrics("torNetwork.torStartupTime", System.currentTimeMillis() - ts));
         } catch (Throwable e) {
             if (!shutDownInProgress) {

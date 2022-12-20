@@ -18,9 +18,7 @@
 package bisq.monitor.monitor;
 
 import bisq.common.util.CompletableFutureUtil;
-import bisq.common.util.Utilities;
 import lombok.extern.slf4j.Slf4j;
-import org.berndpruenster.netlayer.tor.Tor;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -87,14 +85,6 @@ public class MonitorTaskRunner {
         stopped = true;
         Set<CompletableFuture<Void>> futures = new HashSet<>();
         monitorTasks.forEach(task -> futures.add(task.shutDown()));
-        return CompletableFutureUtil.allOf(futures)
-                .handleAsync((__, throwable) -> {
-                    if (Tor.getDefault() != null) {
-                        log.info("Shut down tor");
-                        Tor.getDefault().shutdown();
-                        log.info("Tor shutdown completed");
-                    }
-                    return null;
-                }, Utilities.getSingleThreadExecutor("ShutdownTor"));
+        return CompletableFutureUtil.allOf(futures).handle((r, t) -> null);
     }
 }

@@ -17,40 +17,30 @@
 
 package bisq.monitor.monitor;
 
-import bisq.common.UserThread;
 import bisq.monitor.reporter.Reporter;
 import bisq.network.p2p.NodeAddress;
-import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 import lombok.extern.slf4j.Slf4j;
-import org.berndpruenster.netlayer.tor.NativeTor;
-import org.berndpruenster.netlayer.tor.Tor;
-import org.berndpruenster.netlayer.tor.TorSocket;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.Socket;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public abstract class MonitorTask {
     protected final Properties properties;
     protected final Reporter reporter;
-    protected final int socketTimeout;
+    protected final TorNode torNode;
     protected final boolean runSerial;
     private final long interval;
     private final boolean enabled;
-    private final File torDir;
+
     private long lastRunTs;
     protected boolean shutDownInProgress;
 
-
-    public MonitorTask(Properties properties, Reporter reporter, File appDir, boolean runSerial) {
+    public MonitorTask(Properties properties, Reporter reporter, TorNode torNode, boolean runSerial) {
         this.properties = properties;
         this.reporter = reporter;
+        this.torNode = torNode;
 
-        socketTimeout = (int) TimeUnit.SECONDS.toMillis(Integer.parseInt(properties.getProperty("Monitor.socketTimeoutInSec", "120")));
 
         String className = getClass().getSimpleName();
         interval = Integer.parseInt(properties.getProperty("Monitor." + className + ".interval", "600")) * 1000L;
@@ -63,7 +53,6 @@ public abstract class MonitorTask {
 
         enabled = "true".equals(properties.getProperty("Monitor." + className + ".enabled", "false"));
 
-        torDir = new File(appDir, "tor");
     }
 
     protected String getName() {
@@ -91,68 +80,6 @@ public abstract class MonitorTask {
                 nodeAddress.getFullAddress()
                         .replace("http://", "")
                         .replace("https://", "");
-    }
-
-    protected Socket getSocket(NodeAddress nodeAddress) throws IOException {
-        String hostName = nodeAddress.getHostName();
-        if (hostName.contains(".onion")) {
-            TorSocket torSocket = new TorSocket(hostName, nodeAddress.getPort(), null);
-            torSocket.setSoTimeout(socketTimeout);
-            return torSocket;
-        } else {
-            return new Socket(hostName, nodeAddress.getPort());
-        }
-    }
-
-    protected void maybeCreateTor() {
-        if (Tor.getDefault() != null) {
-            return;
-        }
-        try {
-            Tor.setDefault(new NativeTor(torDir, null, null));
-        } catch (Throwable e) {
-            log.error("Could not create tor. We delete the tor dir. ", e);
-            boolean deleted = torDir.delete();
-            if (!deleted) {
-                log.error("Deleting tor dir {} failed. We try to create tor again after 2 seconds. " +
-                        "If it fails again we shut down.", torDir.getAbsolutePath());
-                UserThread.runAfter(() -> {
-                    torDir.delete();
-                    try {
-                        if (Tor.getDefault() != null) {
-                            log.error("Tor.getDefault() would be expected to be null");
-                            Tor.getDefault().shutdown();
-                        }
-                        Tor.setDefault(new NativeTor(torDir, null, null));
-                    } catch (Throwable e2) {
-                        log.error("Cannot create tor. We shut down. ", e2);
-                        MonitorMain.shutDown(1);
-                    }
-                }, 2);
-            }
-            throw new RuntimeException(e);
-        }
-    }
-
-    protected Socks5Proxy getProxy() {
-        maybeCreateTor();
-        try {
-            return Tor.getDefault().getProxy();
-        } catch (Throwable e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    protected void shutdownTor() {
-        try {
-            if (Tor.getDefault() != null) {
-                Tor.getDefault().shutdown();
-                Tor.setDefault(null);
-            }
-        } catch (Throwable e) {
-            log.error("Error at shut down tor. ", e);
-        }
-
     }
 
     abstract public CompletableFuture<Void> shutDown();

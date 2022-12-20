@@ -20,6 +20,7 @@ package bisq.monitor.monitor.tasks;
 import bisq.core.provider.ProvidersRepository;
 import bisq.monitor.monitor.MonitorHttpClient;
 import bisq.monitor.monitor.MonitorTask;
+import bisq.monitor.monitor.TorNode;
 import bisq.monitor.reporter.Metrics;
 import bisq.monitor.reporter.Reporter;
 import bisq.monitor.utils.Util;
@@ -28,7 +29,6 @@ import com.google.gson.JsonParser;
 import com.runjva.sourceforge.jsocks.protocol.Socks5Proxy;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
@@ -48,8 +48,8 @@ public class PriceNodeData extends MonitorTask {
     private final Set<String> addresses = new HashSet<>();
     private final ExecutorService executor;
 
-    public PriceNodeData(Properties properties, Reporter reporter, File appDir) {
-        super(properties, reporter, appDir, true);
+    public PriceNodeData(Properties properties, Reporter reporter, TorNode torNode) {
+        super(properties, reporter, torNode, true);
 
         String hosts = properties.getProperty("Monitor.PriceNodeData.hosts", "");
         if (hosts == null || hosts.isEmpty()) {
@@ -76,9 +76,9 @@ public class PriceNodeData extends MonitorTask {
     @Override
     public void run() {
         try {
-            maybeCreateTor();
+            torNode.maybeCreateTor();
             Socks5Proxy proxy = addresses.toString().contains(".onion") ?
-                    getProxy() : null;
+                    torNode.getProxy() : null;
             addresses.forEach(address1 -> {
                 if (!shutDownInProgress) {
                     log.info("Send request to '{}'", address1);
@@ -88,12 +88,12 @@ public class PriceNodeData extends MonitorTask {
                             try {
                                 if (address.contains(".onion")) {
                                     address = getAddressWithoutProtocol(address);
-                                    MonitorHttpClient httpClient = MonitorHttpClient.config(address, 80, proxy, socketTimeout);
+                                    MonitorHttpClient httpClient = MonitorHttpClient.config(address, 80, proxy, torNode.getSocketTimeout());
                                     String host = address.replace(".onion", "");
                                     reportFees(host, httpClient.getWithTor("/getFees/"));
                                     reportPrices(host, httpClient.getWithTor("/getAllMarketPrices/"));
                                 } else {
-                                    MonitorHttpClient httpClient = MonitorHttpClient.config(address, socketTimeout);
+                                    MonitorHttpClient httpClient = MonitorHttpClient.config(address, torNode.getSocketTimeout());
                                     address = getAddressWithoutProtocol(address);
                                     reportFees(address, httpClient.get("/getFees"));
                                     reportPrices(address, httpClient.get("/getAllMarketPrices"));

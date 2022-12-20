@@ -17,13 +17,15 @@
 
 package bisq.monitor.monitor.tasks;
 
+import bisq.common.util.Utilities;
 import bisq.monitor.monitor.MonitorTask;
+import bisq.monitor.monitor.TorNode;
 import bisq.monitor.reporter.Metrics;
 import bisq.monitor.reporter.Reporter;
+import bisq.tor.TorServerSocket;
 import lombok.extern.slf4j.Slf4j;
-import org.berndpruenster.netlayer.tor.HiddenServiceSocket;
 
-import java.io.File;
+import java.io.IOException;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -34,26 +36,28 @@ import java.util.concurrent.Executors;
  */
 @Slf4j
 public class TorHiddenServiceStartupTime extends MonitorTask {
-    private CompletableFuture<HiddenServiceSocket> future;
+    private CompletableFuture<TorServerSocket> future;
 
-    public TorHiddenServiceStartupTime(Properties properties, Reporter reporter, File appDir) {
-        super(properties, reporter, appDir, true);
+    public TorHiddenServiceStartupTime(Properties properties, Reporter reporter, TorNode torNode) {
+        super(properties, reporter, torNode, true);
     }
 
     @Override
     public void run() {
-        future = new CompletableFuture<>();
         try {
-            maybeCreateTor();
+            torNode.maybeCreateTor();
             long ts = System.currentTimeMillis();
-            try (HiddenServiceSocket hiddenServiceSocket = new HiddenServiceSocket(9998, "hs", 9999)) {
-                hiddenServiceSocket.addReadyListener(socket -> {
-                    future.complete(socket);
-                    return null;
-                });
-                future.join();
-                reporter.report(new Metrics("torNetwork.hiddenServicePublishingTime", System.currentTimeMillis() - ts));
-            }
+            future = CompletableFuture.supplyAsync(() -> {
+                try {
+                    TorServerSocket torServerSocket = torNode.getTorServerSocket();
+                    torServerSocket.bind(9999, "default");
+                    return torServerSocket;
+                } catch (IOException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }, Utilities.getSingleThreadExecutor("createHS"));
+            future.join();
+            reporter.report(new Metrics("torNetwork.hiddenServicePublishingTime", System.currentTimeMillis() - ts));
         } catch (Throwable e) {
             if (!shutDownInProgress) {
                 log.error("Error at TorHiddenServiceStartupTime.run", e);
