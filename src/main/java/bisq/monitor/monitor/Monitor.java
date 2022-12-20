@@ -17,7 +17,6 @@
 
 package bisq.monitor.monitor;
 
-import bisq.common.util.Utilities;
 import bisq.monitor.monitor.tasks.*;
 import bisq.monitor.reporter.Reporter;
 import lombok.extern.slf4j.Slf4j;
@@ -47,10 +46,6 @@ public class Monitor {
     }
 
     public CompletableFuture<Void> shutDown() {
-        return monitorTaskRunner.shutDown()
-                .handleAsync((__, throwable) -> {
-                    torNode.shutDown();
-                    return null;
-                }, Utilities.getSingleThreadExecutor("ShutdownTor"));
+        return monitorTaskRunner.shutDown().thenRunAsync(torNode::shutDown);
     }
 }
