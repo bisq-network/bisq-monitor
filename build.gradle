@@ -53,6 +53,10 @@ dependencies {
     implementation libs.google.gson
     implementation libs.protobuf.java
     implementation libs.spark.core
+    implementation libs.apache.commons.compress
+    implementation libs.tukaani
+    implementation libs.chimp.jsocks
+    implementation libs.chimp.jtorctl
 
     implementation libs.slf4j.api
     implementation libs.logback.classic
