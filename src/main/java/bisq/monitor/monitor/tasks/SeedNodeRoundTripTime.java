@@ -128,8 +128,6 @@ public class SeedNodeRoundTripTime extends MonitorTask {
     private CompletableFuture<NetworkEnvelope> sendMessage(NodeAddress nodeAddress, NetworkEnvelope request) {
         return CompletableFuture.supplyAsync(() -> {
             try (Socket socket = torNode.getSocket(nodeAddress)) {
-                // socket.setSoTimeout(SOCKET_TIMEOUT);
-                socket.setSoTimeout(30000);
                 OutputStream outputStream = socket.getOutputStream();
                 protobuf.NetworkEnvelope requestProto = request.toProtoNetworkEnvelope();
                 requestProto.writeDelimitedTo(outputStream);
