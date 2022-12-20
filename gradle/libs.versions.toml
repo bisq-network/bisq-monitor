@@ -14,6 +14,9 @@ openjfx-plugin = { strictly = '0.0.12' }
 slf4j-lib = { strictly = '1.7.36' }
 spark-lib = { strictly = '2.5.2' }
 failsafe-lib = { strictly = '3.2.4' }
+google-gson = { strictly = '2.8.5' }
+protobuf = { strictly = '3.19.1' }
+bitcoinj = { strictly = '42bbae9' }
 
 # Referenced in subproject's build.gradle > dependencies block in the form 'implementation libs.guava'
 # Note: keys can contain dash (protobuf-java) but the dash is replaced by dot when referenced
@@ -30,7 +33,9 @@ netlayer-tor-native = { module = 'com.github.bisq-network.netlayer:tor.native', 
 slf4j-api = { module = 'org.slf4j:slf4j-api', version.ref = 'slf4j-lib' }
 spark-core = { module = 'com.sparkjava:spark-core', version.ref = 'spark-lib' }
 failsafe = { module = 'dev.failsafe:failsafe', version.ref = 'failsafe-lib' }
-
+google-gson = { module = "com.google.code.gson:gson", version.ref = "google-gson" }
+protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobuf" }
+bitcoinj = { module = "com.github.bisq-network:bitcoinj", version.ref = "bitcoinj" }
 
 [bundles]
 
