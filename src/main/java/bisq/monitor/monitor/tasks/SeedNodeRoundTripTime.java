@@ -111,7 +111,7 @@ public class SeedNodeRoundTripTime extends MonitorTask {
             }
         } catch (Throwable e) {
             if (!shutDownInProgress) {
-                log.error("Error at SeedNodeRoundTripTime.run", e);
+                log.error("Error at SeedNodeRoundTripTime.run. Error: {}", e.toString());
             }
         }
     }
