@@ -49,7 +49,7 @@ public class TorNode {
             return;
         }
         try {
-            tor = new Tor(torDir.getAbsolutePath());
+            tor = new Tor(torDir.getAbsolutePath(), this::shutDown);
             tor.start();
         } catch (Throwable e) {
             log.error("Could not create tor. We delete the tor dir. ", e);
@@ -64,7 +64,7 @@ public class TorNode {
                             log.error("Tor.getDefault() would be expected to be null");
                             tor.shutdown();
                         }
-                        tor = new Tor(torDir.getAbsolutePath());
+                        tor = new Tor(torDir.getAbsolutePath(), this::shutDown);
                         tor.start();
                     } catch (Throwable e2) {
                         log.error("Cannot create tor. We shut down. ", e2);
@@ -106,7 +106,6 @@ public class TorNode {
         } catch (Throwable e) {
             log.error("Error at shut down tor. ", e);
         }
-
     }
 
     public TorServerSocket getTorServerSocket() throws IOException {

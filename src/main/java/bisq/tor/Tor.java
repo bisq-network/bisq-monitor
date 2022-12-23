@@ -82,34 +82,22 @@ public class Tor {
 
     private final TorController torController;
     private final TorBootstrap torBootstrap;
+    private final Runnable shutDownHandler;
     private final String torDirPath;
     @Getter
     private final AtomicReference<State> state = new AtomicReference<>(State.NEW);
     private final RetryPolicy<Boolean> retryPolicy;
     private int proxyPort = -1;
 
-    public static Tor getTor(String torDirPath) {
-        Tor tor;
-        synchronized (TOR_BY_APP) {
-            if (TOR_BY_APP.containsKey(torDirPath)) {
-                tor = TOR_BY_APP.get(torDirPath);
-            } else {
-                log.info("Creating Tor using torDirPath: {}", torDirPath);
-                tor = new Tor(torDirPath);
-                TOR_BY_APP.put(torDirPath, tor);
-            }
-        }
-        return tor;
-    }
-
-    public Tor(String torDirPath) {
+    public Tor(String torDirPath, Runnable shutdownHandler) {
         this.torDirPath = torDirPath;
         torBootstrap = new TorBootstrap(torDirPath);
+        this.shutDownHandler = shutdownHandler;
         torController = new TorController(torBootstrap.getCookieFile());
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             Thread.currentThread().setName("Tor.shutdownHook");
-            shutdown();
+            shutdownHandler.run();
         }));
 
         retryPolicy = RetryPolicy.<Boolean>builder()
@@ -121,7 +109,7 @@ public class Tor {
                 .onRetry(e -> log.info("Retry. AttemptCount={}.", e.getAttemptCount()))
                 .onRetriesExceeded(e -> {
                     log.warn("Failed. Max retries exceeded. We shutdown.");
-                    shutdown();
+                    shutdownHandler.run();
                 })
                 .onSuccess(e -> log.debug("Succeeded."))
                 .build();
@@ -165,7 +153,7 @@ public class Tor {
                 } catch (Exception exception) {
                     torBootstrap.deleteVersionFile();
                     log.error("Starting tor failed.", exception);
-                    shutdown();
+                    shutDownHandler.run();
                     return false;
                 }
                 log.info(">> Starting Tor took {} ms", System.currentTimeMillis() - ts);
