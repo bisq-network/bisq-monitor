@@ -15,21 +15,31 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.monitor.reporter;
+package bisq.tor;
 
-import lombok.extern.slf4j.Slf4j;
+public class OnionAddress {
+    private final String host;
+    private final int port;
 
-import java.util.Set;
+    public OnionAddress(String host, int port) {
+        this.host = host;
+        this.port = port;
+    }
 
-@Slf4j
-public class ConsoleReporter extends Reporter {
-    @Override
-    public void report(Metrics metrics) {
-        System.out.println("ConsoleReporter: " + metrics.toString());
+    public String getHost() {
+        return host;
+    }
+
+    public String getServiceId() {
+        return host.replace(".onion", "");
+    }
+
+    public int getPort() {
+        return port;
     }
 
     @Override
-    public void report(Set<Metrics> metrics) {
-        metrics.forEach(this::report);
+    public String toString() {
+        return host + ":" + port;
     }
 }

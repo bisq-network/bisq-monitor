@@ -2,6 +2,7 @@ plugins {
     id 'application'
     alias(libs.plugins.openjfx)
     id 'bisq.post-build'
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
 }
 
 repositories {
@@ -13,7 +14,7 @@ group 'bisq'
 version = file("bisq/desktop/src/main/resources/version.txt").text.trim()
 
 application {
-    project.mainClassName = 'bisq.monitor.Monitor'
+    project.mainClassName = 'bisq.monitor.AppChooserMain'
 }
 
 java {
@@ -33,9 +34,9 @@ javafx {
 }
 
 configurations.all {
-    exclude group: 'com.github.bisq-network:bitcoinj'
     exclude group: 'io.grpc'
-    exclude group: 'org.fxmisc.easybind'
+    distZip.enabled = true
+    distTar.enabled = false
 }
 
 dependencies {
@@ -44,17 +45,35 @@ dependencies {
     implementation 'bisq:core'
     implementation 'bisq:proto'
     implementation 'bisq:p2p'
+    implementation 'bisq:seednode'
 
     implementation libs.guava
     implementation libs.guice
-    implementation libs.netlayer.tor
-    implementation libs.netlayer.tor.native
+    implementation libs.failsafe
+    implementation libs.google.gson
+    implementation libs.protobuf.java
+    implementation libs.spark.core
+    implementation libs.apache.commons.compress
+    implementation libs.tukaani
+    implementation libs.chimp.jsocks
+    implementation libs.chimp.jtorctl
 
-    implementation libs.logback.core
+    implementation libs.slf4j.api
     implementation libs.logback.classic
+    implementation libs.logback.core
+
+    implementation(libs.bitcoinj) {
+        exclude(module: 'bcprov-jdk15on')
+        exclude(module: 'guava')
+        exclude(module: 'jsr305')
+        exclude(module: 'okhttp')
+        exclude(module: 'okio')
+        exclude(module: 'protobuf-java')
+        exclude(module: 'slf4j-api')
+    }
+
     compileOnly libs.lombok
     annotationProcessor libs.lombok
-    implementation libs.slf4j.api
 
     testAnnotationProcessor libs.lombok
     testCompileOnly libs.lombok

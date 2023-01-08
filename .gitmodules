@@ -1,7 +1,7 @@
 [submodule "bisq"]
 	path = bisq
-	url = https://github.com/bisq-network/bisq.git
-	branch = master
+	url = https://github.com/HenrikJannsen/bisq.git
+	branch = seednodes
 [submodule "bisq-gradle"]
 	path = bisq-gradle
 	url = https://github.com/bisq-network/bisq-gradle.git

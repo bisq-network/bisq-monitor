@@ -15,21 +15,7 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.monitor.reporter;
-
-import lombok.extern.slf4j.Slf4j;
-
-import java.util.Set;
-
-@Slf4j
-public class ConsoleReporter extends Reporter {
-    @Override
-    public void report(Metrics metrics) {
-        System.out.println("ConsoleReporter: " + metrics.toString());
-    }
-
-    @Override
-    public void report(Set<Metrics> metrics) {
-        metrics.forEach(this::report);
-    }
-}
+/**
+ * Monitors the tor network, Bisq seed node availability and connectivity and price nodes.
+ */
+package bisq.monitor.monitor;

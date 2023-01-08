@@ -15,21 +15,15 @@
  * along with Bisq. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package bisq.monitor.reporter;
-
-import lombok.extern.slf4j.Slf4j;
-
-import java.util.Set;
-
-@Slf4j
-public class ConsoleReporter extends Reporter {
-    @Override
-    public void report(Metrics metrics) {
-        System.out.println("ConsoleReporter: " + metrics.toString());
-    }
-
-    @Override
-    public void report(Set<Metrics> metrics) {
-        metrics.forEach(this::report);
-    }
-}
+/**
+ * DataDump is a headless Bisq application with the minimal setup for receiving all relevant network data
+ * like trade statistics or DAO data.
+ * It sends reports via the provided Reporter for the data we want to have available in Grafana.
+ * It has to run as standalone application.
+ * <p>
+ * Data we are interested in  are:
+ * - Trade statistics
+ * - DAO data
+ * - Offer data
+ */
+package bisq.monitor.dump;

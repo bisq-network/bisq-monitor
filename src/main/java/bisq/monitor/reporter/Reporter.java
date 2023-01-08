@@ -17,19 +17,24 @@
 
 package bisq.monitor.reporter;
 
-import lombok.extern.slf4j.Slf4j;
-
+import java.util.Map;
 import java.util.Set;
 
-@Slf4j
-public class ConsoleReporter extends Reporter {
-    @Override
-    public void report(Metrics metrics) {
-        System.out.println("ConsoleReporter: " + metrics.toString());
+public abstract class Reporter {
+
+    protected Reporter() {
     }
 
-    @Override
-    public void report(Set<Metrics> metrics) {
-        metrics.forEach(this::report);
+    abstract public void report(Metrics metrics);
+
+    abstract public void report(Set<Metrics> metrics);
+
+    public void shutDown() {
+    }
+
+    public void report(Map<String, String> map, String prefix) {
+        map.entrySet().stream()
+                .map(entry -> new Metrics(prefix, entry.getKey(), entry.getValue()))
+                .forEach(this::report);
     }
 }
