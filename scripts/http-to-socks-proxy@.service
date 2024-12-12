@@ -1,0 +1,10 @@
+[Unit]
+Description=HTTP-to-SOCKS proxy
+After=network.target
+
+[Service]
+EnvironmentFile=/etc/http-to-socks-proxy/%i.conf
+ExecStart=/usr/bin/socat tcp4-LISTEN:${LOCAL_PORT},reuseaddr,fork,keepalive,bind=127.0.0.1 SOCKS4A:${PROXY_HOST}:${REMOTE_HOST}:${REMOTE_PORT},socksport=${PROXY_PORT}
+
+[Install]
+WantedBy=multi-user.target
