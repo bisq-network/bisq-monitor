@@ -8,7 +8,7 @@ The monitor project collects data and sends it to the Graphite data source which
 
 We use 3 approaches to collect data about the state of the seed nodes.
 
-1. The seed nodes send per clear net messages to the monitoring server. Those messages contain information about the
+1. The seed nodes report data over Tor to the monitoring server. Reported data includes information about the
    state of messages, used memory and DAO hashes.
 2. A tor node pings on a regular interval all seed nodes to measure round trip time and to see if the seed node is
    reachable over tor.
