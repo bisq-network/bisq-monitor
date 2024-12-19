@@ -17,7 +17,7 @@
 
 package bisq.monitor.monitor.tasks;
 
-import bisq.core.provider.ProvidersRepository;
+import bisq.core.provider.PriceFeedNodeAddressProvider;
 import bisq.monitor.monitor.MonitorHttpClient;
 import bisq.monitor.monitor.MonitorTask;
 import bisq.monitor.monitor.TorNode;
@@ -53,7 +53,7 @@ public class PriceNodeData extends MonitorTask {
 
         String hosts = properties.getProperty("Monitor.PriceNodeData.hosts", "");
         if (hosts == null || hosts.isEmpty()) {
-            addresses.addAll(ProvidersRepository.DEFAULT_NODES.stream()
+            addresses.addAll(PriceFeedNodeAddressProvider.DEFAULT_NODES.stream()
                     .map(address -> {
                         if (address.endsWith("/")) {
                             return address.substring(0, address.length() - 1);

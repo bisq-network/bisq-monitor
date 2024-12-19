@@ -17,7 +17,7 @@
 
 package bisq.monitor.monitor.tasks;
 
-import bisq.common.util.Utilities;
+import bisq.common.util.SingleThreadExecutorUtils;
 import bisq.monitor.monitor.MonitorTask;
 import bisq.monitor.monitor.TorNode;
 import bisq.monitor.reporter.Metrics;
@@ -55,7 +55,7 @@ public class TorHiddenServiceStartupTime extends MonitorTask {
                 } catch (IOException | InterruptedException e) {
                     throw new RuntimeException(e);
                 }
-            }, Utilities.getSingleThreadExecutor("createHS"));
+            }, SingleThreadExecutorUtils.getSingleThreadExecutor("createHS"));
             future.join();
             reporter.report(new Metrics("torNetwork.hiddenServicePublishingTime", System.currentTimeMillis() - ts));
         } catch (Throwable e) {

@@ -24,6 +24,7 @@ import bisq.common.app.Log;
 import bisq.common.app.Version;
 import bisq.common.config.BaseCurrencyNetwork;
 import bisq.common.config.Config;
+import bisq.common.util.SingleThreadExecutorUtils;
 import bisq.common.util.Utilities;
 import bisq.core.locale.Res;
 import bisq.core.setup.CoreNetworkCapabilities;
@@ -64,7 +65,7 @@ public class MonitorMain {
         Reporter reporter = "true".equals(properties.getProperty("GraphiteReporter.enabled", "false")) ?
                 new GraphiteReporter(properties) : new ConsoleReporter();
 
-        executor = Utilities.getSingleThreadExecutor("Monitor");
+        executor = SingleThreadExecutorUtils.getSingleThreadExecutor("Monitor");
         CompletableFuture.runAsync(() -> {
             monitor = new Monitor(properties, reporter, appDir);
             monitor.start();
