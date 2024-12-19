@@ -65,7 +65,6 @@ public class PriceNodeData extends MonitorTask {
         } else {
             addresses.addAll(List.of(hosts.split(",")));
         }
-        addresses.add("https://price.bisq.wiz.biz");
 
         excluded.add("NON_EXISTING_SYMBOL");
         excluded.addAll(Set.of(properties.getProperty("Monitor.PriceNodeData.excluded", "").split(",")));
