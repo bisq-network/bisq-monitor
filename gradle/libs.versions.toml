@@ -19,8 +19,8 @@ protobuf = { strictly = '3.19.1' }
 bitcoinj = { strictly = '42bbae9' }
 apache-commons-compress-lib = { strictly = '1.21' }
 tukaani-lib = { strictly = '1.9' }
-chimp-jsocks-lib = { strictly = '567e1cd6' }
-chimp-jtorctl-lib = { strictly = '9b5ba203' }
+jsocks-lib = { strictly = '43b004b' }
+jtorctl-lib = { strictly = 'b2a172f' }
 
 # Referenced in subproject's build.gradle > dependencies block in the form 'implementation libs.guava'
 # Note: keys can contain dash (protobuf-java) but the dash is replaced by dot when referenced
@@ -42,8 +42,8 @@ protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "p
 bitcoinj = { module = "com.github.bisq-network:bitcoinj", version.ref = "bitcoinj" }
 apache-commons-compress = { module = 'org.apache.commons:commons-compress', version.ref = 'apache-commons-compress-lib' }
 tukaani = { module = 'org.tukaani:xz', version.ref = 'tukaani-lib' }
-chimp-jsocks = { module = 'com.github.chimp1984:jsocks', version.ref = 'chimp-jsocks-lib' }
-chimp-jtorctl = { module = 'com.github.chimp1984:jtorctl', version.ref = 'chimp-jtorctl-lib' }
+jsocks = { module = 'com.github.bisq-network:jsocks', version.ref = 'jsocks-lib' }
+jtorctl = { module = 'com.github.bisq-network:jtorctl', version.ref = 'jtorctl-lib' }
 
 [bundles]
 
